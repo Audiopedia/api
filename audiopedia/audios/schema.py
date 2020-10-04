@@ -1,4 +1,3 @@
-
 import graphene
 from graphene_django import DjangoObjectType
 
@@ -15,6 +14,14 @@ class TrackType(DjangoObjectType):
         fields = ("title", "index", "audio_url", "transcript", "duration", "created_at", "updated_at", "active", "published")
 
 class PlaylistType(DjangoObjectType):
+
+    # get tracks by playlist workaround?
+    # tracks = graphene.List(TrackType)
+
+    # @graphene.resolve_only_args
+    # def resolve_tracks(self):
+    #     return self.tracks.all()
+
     class Meta:
         model = Playlist
         fields = ("title", "index", "audio_url", "active", "published", "tracks")
@@ -257,12 +264,61 @@ class Mutation(graphene.ObjectType):
     delete_track = DeleteTrack.Field()
 
 class Query(graphene.ObjectType):
-    all_languages = graphene.List(LanguageType)
-    all_tracks = graphene.List(TrackType)
-    all_playlists = graphene.List(PlaylistType)
-    all_topics = graphene.List(TopicType)
+    topic = graphene.Field(TopicType, id=graphene.Int())
+    playlist = graphene.Field(PlaylistType, id=graphene.Int())
 
-    # def resolve_audios(self, info, **kwargs):
-    #     return Audio.objects.all()
+    tracks = graphene.List(TrackType, playlist=graphene.ID())
+    playlists = graphene.List(PlaylistType, topic=graphene.ID())
+
+    all_languages = graphene.List(LanguageType)
+    all_topics = graphene.List(TopicType)
+    all_playlists = graphene.List(PlaylistType)
+    all_tracks = graphene.List(TrackType)
+
+    # get topic by id
+    def resolve_topic(self, info, **kwargs):
+        id = kwargs.get('id')
+
+        if id is not None:
+            return Topic.objects.get(pk=id)
+        
+        return None
+
+    # get playlist by id
+    def resolve_playlist(self, info, **kwargs):
+        id = kwargs.get('id')
+
+        if id is not None:
+            return Playlist.objects.get(pk=id)
+
+        return None
+
+    # get tracks by playlist
+    def resolve_tracks(self, info, playlist = None, **kwargs):
+
+        if playlist is not None:            
+            return Track.objects.filter(playlist__id=playlist)
+        return None
+
+    # get playlist by topic
+    def resolve_playlists(self, info, topic = None, **kwargs):
+
+        if topic is not None:            
+            return Playlist.objects.filter(topic__id=topic)
+        
+        return None
+    
+    # get all languages/topics/playlists/tracks in database
+    def resolve_all_languages(self, info, **kwargs):
+        return Language.objects.all()
+
+    def resolve_all_topics(self, info, **kwargs):
+        return Topic.objects.all()
+
+    def resolve_all_playlists(self, info, **kwargs):
+        return Playlist.objects.all()
+
+    def resolve_all_tracks(self, info, **kwargs):
+        return Track.objects.all()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
