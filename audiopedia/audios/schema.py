@@ -1,7 +1,13 @@
 import graphene
 from graphene_django import DjangoObjectType
+from datetime import datetime, timedelta
 
 from .models import Language, Track, Playlist, Topic
+
+def strtodur(d):
+    t = datetime.strptime(d,"%H:%M:%S")
+    duration = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+    return duration
 
 class LanguageType(DjangoObjectType):
     class Meta:
@@ -36,9 +42,9 @@ class TrackInput(graphene.InputObjectType):
     title = graphene.String()
     audio_url = graphene.String()
     transcript = graphene.String()
-    duration = graphene.String()
-    created_at = graphene.DateTime()
-    updated_at = graphene.DateTime()
+    duration = graphene.Int()
+    #created_at = graphene.DateTime()
+    #updated_at = graphene.DateTime()
     active = graphene.Boolean()
     published = graphene.Boolean()
     
@@ -196,18 +202,23 @@ class CreateTrack(graphene.Mutation):
         input = TrackInput(required=True)
     
     ok = graphene.Boolean()
-    playlist = graphene.Field(TrackType)
+    track = graphene.Field(TrackType)
 
     @staticmethod
     def mutate(root, info, input=None):
         ok = True
+        # models.durationField() requires timedelta
+        # so we have to convert the duration string into the right type
+        # String MUST be in the 00:00:00 format
+
         track_instance = Track(
+            index =input.index,
             title=input.title,
             audio_url = input.audio_url,
             transcript = input.transcript,
             duration = input.duration,
-            created_at = graphene.DateTime(),
-            updated_at = graphene.DateTime(),
+            created_at = datetime.now(), #RuntimeWarning: DateTimeField Track.created_at received a naive datetime (2020-10-06 15:33:10.176943) while time zone support is active.
+            updated_at = datetime.now(),
             active = input.active,
             published = input.published
             )
@@ -227,7 +238,7 @@ class UpdateTrack(graphene.Mutation):
     @staticmethod
     def mutate(root, info, index, duration, transcript=None, audio_url=None):
         ok = False
-        track_instance = Track.objects.get(pk=index)
+        track_instance = Track.objects.get(index=index)
         if track_instance:
             ok = True
             if audio_url:
@@ -242,23 +253,25 @@ class UpdateTrack(graphene.Mutation):
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:
-        index = graphene.ID()
+        index = graphene.ID(required=True)
     
     ok = graphene.Boolean()
 
-    @classmethod
-    def mutate(cls, root, info, **kwargs):
-        obj = Track.objects.get(pk=kwargs["index"])
+    @staticmethod
+    def mutate(root, info, index):
+        obj = Track.objects.get(index=index)
         obj.delete()
-        return cls(ok=True)
+        return DeleteTrack(ok=True)
 
 class Mutation(graphene.ObjectType):
     create_topic = CreateTopic.Field()
     update_topic = UpdateTopic.Field()
     delete_topic = DeleteTopic.Field()
+
     create_playlist = CreatePlaylist.Field()
     update_playlist = UpdatePlaylist.Field()
     delete_playlist = DeletePlaylist.Field()
+
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
     delete_track = DeleteTrack.Field()
