@@ -5,6 +5,8 @@ from graphene.test import Client
 from audios.models import *
 from audios.schema import schema
 
+from collections import OrderedDict 
+
 query_track = """
 query {
   allTracks {
@@ -25,13 +27,13 @@ mutation createTrack {
     index: 0,
     audioUrl:"www.test.url",
     transcript: "This is a test transcript.",
-    duration: "00:00:50",
+    duration: 50,
     active: true,
     published: true
   }) {
     ok
     track {
-      id
+      index
     }
   }
 }
@@ -64,20 +66,16 @@ class TestSchemas(TestCase):
     def setUp(self):
         self.client = Client(schema)
  
-    def test_query_track(self):
-        result = self.client.execute(query_track)
-        self.assertDictEqual({
-          "data": {
-            "allTracks": [
-              {
-                "title": "This is a test question?",
-                "index": 0,
-                "audioUrl": "www.test.url",
-                "transcript": "This is a test transcript.",
-                "duration": 50,
-                "active": True,
-                "published": True
-              }
-            ]
+    def test_create_track(self):
+        result = self.client.execute(create_track)
+        print(Track.objects.all())
+
+        assert result["data"] == OrderedDict({
+          "createTrack": {
+            "ok": True,
+            "track": {
+              "index": "0"
+            }
           }
-        }, result)
+        })
+        
