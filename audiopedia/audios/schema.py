@@ -5,11 +5,6 @@ from django.utils import timezone
 
 from .models import Language, Track, Playlist, Topic
 
-def strtodur(d):
-    t = datetime.strptime(d,"%H:%M:%S")
-    duration = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
-    return duration
-
 class LanguageType(DjangoObjectType):
     class Meta:
         model = Language
@@ -149,7 +144,7 @@ class CreatePlaylist(graphene.Mutation):
                 return CreatePlaylist(ok=False, playlist=None)
             tracks.append(track)
         playlist_instance = Playlist(
-            index =
+            index = input.index,
             title=input.title,
             audio_url = input.audio_url,
             active = input.active,
@@ -161,43 +156,49 @@ class CreatePlaylist(graphene.Mutation):
         
 class UpdatePlaylist(graphene.Mutation):
     class Arguments:
-        index = graphene.ID(required=True)
-        title = graphene.String(required=True)
+        id = graphene.ID(required=True)
+        title = graphene.String()
         audio_url = graphene.String()
+        tracks = graphene.List(graphene.ID)
+        active = graphene.Boolean()
+        published = graphene.Boolean()
 
     ok = graphene.Boolean()
     playlist = graphene.Field(PlaylistType)
 
     @staticmethod
-    def mutate(root, info, index, title, audio_url=None):
+    def mutate(root, info, id, active=None, published=None, tracks=None, title=None, audio_url=None):
         ok = False
-        playlist_instance = Playlist.objects.get(pk=index)
+        playlist_instance = Playlist.objects.get(pk=id)
         if playlist_instance:
             ok = True
             tracks = []
-            for track_input in input.tracks:
-                track = Track.objects.get(pk=track_input.index)
+            for track_id in tracks:
+                track = Track.objects.get(pk=track_id)
                 if track is None:
                     return UpdatePlaylist(ok=False, track=None)
                 tracks.append(track)
-            playlist_instance.title = title
-            playlist_instance.audio_url = audio_url
+            if title: playlist_instance.title = title
+            if audio_url: playlist_instance.audio_url = audio_url
+            if active != None: playlist_instance.active = active
+            if published != None: playlist_instance.published = published
             playlist_instance.save()
-            playlist_instance.tracks.set(tracks)
-            return UpdatePlaylist(ok=ok, track=track_instance)
-        return UpdatePlaylist(ok=ok, track=None)
+
+            if len(tracks): playlist_instance.tracks.set(tracks)
+            return UpdatePlaylist(ok=ok, playlist=playlist_instance)
+        return UpdatePlaylist(ok=ok, playlist=None)
 
 class DeletePlaylist(graphene.Mutation):
     class Arguments:
-        index = graphene.ID()
+        id = graphene.ID()
     
     ok = graphene.Boolean()
 
-    @classmethod
-    def mutate(cls, root, info, **kwargs):
-        obj = Playlist.objects.get(pk=kwargs["index"])
+    @staticmethod
+    def mutate(root, info, id):
+        obj = Playlist.objects.get(pk=id)
         obj.delete()
-        return cls(ok=True)
+        return DeletePlaylist(ok=True)
 
 class CreateTrack(graphene.Mutation):
     class Arguments:
@@ -209,10 +210,6 @@ class CreateTrack(graphene.Mutation):
     @staticmethod
     def mutate(root, info, input=None):
         ok = True
-        # models.durationField() requires timedelta
-        # so we have to convert the duration string into the right type
-        # String MUST be in the 00:00:00 format
-
         track_instance = Track(
             index =input.index,
             title=input.title,
@@ -233,12 +230,14 @@ class UpdateTrack(graphene.Mutation):
         transcript = graphene.String()
         audio_url = graphene.String()
         duration = graphene.String()
+        active = graphene.Boolean()
+        published = graphene.Boolean()
 
     ok = graphene.Boolean()
-    #track = graphene.Field(TrackType)
+    track = graphene.Field(TrackType)
 
     @staticmethod
-    def mutate(root, info, id, duration, transcript=None, audio_url=None):
+    def mutate(root, info, id, active=None, published=None, duration=None, transcript=None, audio_url=None):
         ok = False
         track_instance = Track.objects.get(pk=id)
         if track_instance:
@@ -249,9 +248,13 @@ class UpdateTrack(graphene.Mutation):
                 track_instance.transcript = transcript
             if duration:
                 track_instance.duration = duration
+            if active != None:
+                track_instance.active = active
+            if published != None:
+                track_instance.published = published
             track_instance.save()
-            return UpdateTrack(ok=ok)
-        return UpdateTrack(ok=ok)
+            return UpdateTrack(ok=ok, track=track_instance)
+        return UpdateTrack(ok=ok, track=None)
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:

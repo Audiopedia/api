@@ -24,17 +24,17 @@ query {
 create_track = """
 mutation createTrack {
   createTrack(input: {
-    title: "This is a test question?",
+    title: "How are germs mostly spread?",
     index: 0,
     audioUrl: "www.test.url",
-    transcript: "This is a test transcript.",
-    duration: 50,
+    transcript: "Germs are spread through X,Y, and Z.",
+    duration: 33,
     active: true,
     published: true
   }) {
     ok
     track {
-      index
+        index
     }
   }
 }
@@ -42,8 +42,11 @@ mutation createTrack {
 
 update_track = """
 mutation updateTrack {
-  updateTrack(id: 1, transcript: "Hello", duration: "30") {
+  updateTrack(id: 1, active: false) {
 	ok
+    track {
+        active
+    }
   }
 }
 """
@@ -60,8 +63,8 @@ create_playlist = """
 mutation createPlaylist {
     createPlaylist(input: {
 		index: 0,
-        title: "Nutrition",
-        audioUrl: "test.com",
+        title: "Cleanliness",
+        audioUrl: "www.test.url",
         active: true,
         published: true,
         tracks: [1]
@@ -83,8 +86,36 @@ query {
         audioUrl
         active
         published
-        tracks
+        tracks {
+            id
+            title
+            index
+            audioUrl
+            transcript
+            duration
+            active
+            published
+        }
     }
+}
+"""
+
+update_playlist = """
+mutation updatePlaylist {
+  updatePlaylist(id: 1, active: false) {
+	ok
+    playlist {
+        active
+    }
+  }
+}
+"""
+
+delete_playlist = """
+mutation deletePlaylist {
+  deletePlaylist(id: 1) {
+	ok
+  }
 }
 """
 
@@ -108,12 +139,12 @@ class TestSchemas(TestCase):
         self.client.execute(create_track)
         result = self.client.execute(query_track)
         assert result["data"]["allTracks"][0] == {
-          'title': 'This is a test question?',
+          'title': 'How are germs mostly spread?',
           'index': 0,
           'id': '1',
           'audioUrl': 'www.test.url',
-          'transcript': 'This is a test transcript.',
-          'duration': 50,
+          'transcript': 'Germs are spread through X,Y, and Z.',
+          'duration': 33,
           'active': True,
           'published': True
         }
@@ -121,7 +152,7 @@ class TestSchemas(TestCase):
     def test_update_track(self):
         self.client.execute(create_track)
         result = self.client.execute(update_track)
-        assert result["data"] == collections.OrderedDict([('updateTrack', {'ok': True})])
+        assert result["data"] == collections.OrderedDict([('updateTrack', {'ok': True, 'track': {'active': False}})])
 
     def test_delete_track(self):
         self.client.execute(create_track)
@@ -140,6 +171,19 @@ class TestSchemas(TestCase):
         self.client.execute(create_track)
         self.client.execute(create_playlist)
         result = self.client.execute(query_playlist)
-        print(result)
+        assert result == {'data': {'allPlaylists': [{'id': '1', 'title': 'Cleanliness', 'index': 0, 'audioUrl': 'www.test.url', 'active': True, 'published': True, 'tracks': [{'id': '1', 'title': 'How are germs mostly spread?', 'index': 0, 'audioUrl': 'www.test.url', 'transcript': 'Germs are spread through X,Y, and Z.', 'duration': 33, 'active': True, 'published': True}]}]}}
+
+    def test_update_playlist(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        result = self.client.execute(update_playlist)
+        assert result == {'data': collections.OrderedDict([('updatePlaylist', {'ok': True, 'playlist': {'active': False}})])}
+    
+    def test_delete_playlist(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        result = self.client.execute(delete_playlist)
+        assert result == {'data': collections.OrderedDict([('deletePlaylist', {'ok': True})])}
+        
 
         
