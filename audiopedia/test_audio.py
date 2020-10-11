@@ -43,7 +43,7 @@ mutation createTrack {
 update_track = """
 mutation updateTrack {
   updateTrack(id: 1, transcript: "Hello", duration: "30") {
-		ok
+	ok
   }
 }
 """
@@ -51,26 +51,40 @@ mutation updateTrack {
 delete_track = """
 mutation deleteTrack {
   deleteTrack(id: 1) {
-		ok
+	ok
   }
 }
 """
 
 create_playlist = """
 mutation createPlaylist {
-  createPlaylist(input: {
+    createPlaylist(input: {
 		index: 0,
-    title: "Nutrition",
-    audioUrl: "test.com",
-    active: true,
-    published: true,
-    tracks: [1]
+        title: "Nutrition",
+        audioUrl: "test.com",
+        active: true,
+        published: true,
+        tracks: [1]
   }) {
-    ok
-    playlist {
-      id
+        ok
+        playlist {
+            id
+        }
     }
-  }
+}
+"""
+
+query_playlist = """
+query {
+    allPlaylists {
+        id
+        title
+        index
+        audioUrl
+        active
+        published
+        tracks
+    }
 }
 """
 
@@ -109,19 +123,23 @@ class TestSchemas(TestCase):
         result = self.client.execute(update_track)
         assert result["data"] == collections.OrderedDict([('updateTrack', {'ok': True})])
 
-    # DELETE QUERIES DOESN'T WORK
-    """
     def test_delete_track(self):
         self.client.execute(create_track)
         result = self.client.execute(delete_track)
         assert result["data"] == collections.OrderedDict([('deleteTrack', {'ok': True})])
         # Query tracks to make sure there are no tracks
         result = self.client.execute(query_track)
-        print(result)
-    """
+        assert result == {'data': {'allTracks': []}}
     
     def test_create_playlist(self):
         self.client.execute(create_track)
         result = self.client.execute(create_playlist)
+        assert result == {'data': collections.OrderedDict([('createPlaylist', {'ok': True, 'playlist': {'id': '1'}})])}
+
+    def test_query_playlist(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        result = self.client.execute(query_playlist)
         print(result)
+
         

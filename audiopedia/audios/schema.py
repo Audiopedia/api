@@ -149,7 +149,7 @@ class CreatePlaylist(graphene.Mutation):
                 return CreatePlaylist(ok=False, playlist=None)
             tracks.append(track)
         playlist_instance = Playlist(
-            index = input.index,
+            index =
             title=input.title,
             audio_url = input.audio_url,
             active = input.active,
