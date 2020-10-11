@@ -119,6 +119,74 @@ mutation deletePlaylist {
 }
 """
 
+create_topic = """
+mutation createTopic {
+    createTopic(input: {
+		index: 0,
+        title: "Health",
+        audioUrl: "www.test.url",
+        active: true,
+        published: true,
+        playlists: [1]
+  }) {
+        ok
+        topic {
+            id
+        }
+    }
+}
+"""
+
+query_topic = """
+query {
+    allTopics {
+        id
+        title
+        index
+        audioUrl
+        active
+        published
+        playlists {
+            id
+            title
+            index
+            audioUrl
+            active
+            published
+            tracks {
+                id
+                title
+                index
+                audioUrl
+                transcript
+                duration
+                active
+                published
+            }
+        }
+    }
+}
+"""
+
+update_topic = """
+mutation updateTopic {
+  updateTopic(id: 1, active: false) {
+	ok
+    topic {
+        active
+    }
+  }
+}
+"""
+
+delete_topic = """
+mutation deleteTopic {
+  deleteTopic(id: 1) {
+	ok
+  }
+}
+"""
+
 @pytest.mark.django_db(transaction=True)
 class TestSchemas(TestCase):
     def setUp(self):
@@ -185,5 +253,29 @@ class TestSchemas(TestCase):
         result = self.client.execute(delete_playlist)
         assert result == {'data': collections.OrderedDict([('deletePlaylist', {'ok': True})])}
         
+    def test_create_topic(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        result = self.client.execute(create_topic)
+        assert result == {'data': collections.OrderedDict([('createTopic', {'ok': True, 'topic': {'id': '1'}})])}
 
-        
+    def test_query_topic(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        self.client.execute(create_topic)
+        result = self.client.execute(query_topic)
+        assert result == {'data': {'allTopics': [{'id': '1', 'title': 'Health', 'index': 0, 'audioUrl': 'www.test.url', 'active': True, 'published': True, 'playlists': [{'id': '1', 'title': 'Cleanliness', 'index': 0, 'audioUrl': 'www.test.url', 'active': True, 'published': True, 'tracks': [{'id': '1', 'title': 'How are germs mostly spread?', 'index': 0, 'audioUrl': 'www.test.url', 'transcript': 'Germs are spread through X,Y, and Z.', 'duration': 33, 'active': True, 'published': True}]}]}]}}
+
+    def test_update_topic(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        self.client.execute(create_topic)
+        result = self.client.execute(update_topic)
+        assert result == {'data': collections.OrderedDict([('updateTopic', {'ok': True, 'topic': {'active': False}})])}
+    
+    def test_delete_topic(self):
+        self.client.execute(create_track)
+        self.client.execute(create_playlist)
+        self.client.execute(create_topic)
+        result = self.client.execute(delete_topic)
+        assert result == {'data': collections.OrderedDict([('deleteTopic', {'ok': True})])}

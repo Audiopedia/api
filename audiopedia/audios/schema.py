@@ -58,7 +58,7 @@ class TopicInput(graphene.InputObjectType):
     audio_url = graphene.String()
     active = graphene.Boolean()
     published = graphene.Boolean()
-    playlists = graphene.List(PlaylistInput)
+    playlists = graphene.List(graphene.ID)
 
 class CreateTopic(graphene.Mutation):
     class Arguments:
@@ -71,12 +71,13 @@ class CreateTopic(graphene.Mutation):
     def mutate(root, info, input=None):
         ok = True
         playlists = []
-        for playlist_input in input.playlists:
-            playlist = Playlist.objects.get(pk=playlist_input.index)
+        for playlist_id in input.playlists:
+            playlist = Playlist.objects.get(pk=playlist_id)
             if playlist is None:
                 return CreateTopic(ok=False, playlist=None)
             playlists.append(playlist)
         topic_instance = Topic(
+            index = input.index,
             title=input.title,
             audio_url = input.audio_url,
             active = input.active,
@@ -88,43 +89,51 @@ class CreateTopic(graphene.Mutation):
         
 class UpdateTopic(graphene.Mutation):
     class Arguments:
-        index = graphene.ID(required=True)
-        title = graphene.String(required=True)
+        id = graphene.ID(required=True)
+        index = graphene.Int()
+        title = graphene.String()
         audio_url = graphene.String()
+        active = graphene.Boolean()
+        published = graphene.Boolean()
+        playlists = graphene.List(graphene.ID)
 
     ok = graphene.Boolean()
     topic = graphene.Field(TopicType)
 
     @staticmethod
-    def mutate(root, info, index, title, audio_url=None):
+    def mutate(root, info, id, index=None, active=None, published=None, playlists=[], title=None, audio_url=None):
         ok = False
-        topic_instance = Topic.objects.get(pk=index)
+        topic_instance = Topic.objects.get(pk=id)
         if topic_instance:
             ok = True
-            playlists = []
-            for playlist_input in input.playlists:
-                playlist = Playlist.objects.get(pk=playlist_input.index)
+            new_playlists = []
+            for playlist_id in playlists:
+                playlist = Playlist.objects.get(pk=playlist_id)
                 if playlist is None:
                     return UpdateTopic(ok=False, playlist=None)
-                playlists.append(playlist)
-            topic_instance.title = title
-            topic_instance.audio_url = audio_url
+                playlists.append(new_playlists)
+
+            if index: topic_instance.index = index
+            if title: topic_instance.title = title
+            if audio_url: topic_instance.audio_url = audio_url
+            if active != None: topic_instance.active = active
+            if published != None: topic_instance.published = published
+
             topic_instance.save()
-            topic_instance.playlists.set(playlists)
+            topic_instance.playlists.set(new_playlists)
             return UpdateTopic(ok=ok, topic=topic_instance)
         return UpdateTopic(ok=ok, topic=None)
 
 class DeleteTopic(graphene.Mutation):
     class Arguments:
-        index = graphene.ID()
-    
+        id = graphene.ID()
     ok = graphene.Boolean()
 
-    @classmethod
-    def mutate(cls, root, info, **kwargs):
-        obj = Topic.objects.get(pk=kwargs["index"])
+    @staticmethod
+    def mutate(root, info, id):
+        obj = Topic.objects.get(pk=id)
         obj.delete()
-        return cls(ok=True)
+        return DeleteTopic(ok=True)
 
 
 class CreatePlaylist(graphene.Mutation):
@@ -157,6 +166,7 @@ class CreatePlaylist(graphene.Mutation):
 class UpdatePlaylist(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
+        index = graphene.Int()
         title = graphene.String()
         audio_url = graphene.String()
         tracks = graphene.List(graphene.ID)
@@ -167,24 +177,26 @@ class UpdatePlaylist(graphene.Mutation):
     playlist = graphene.Field(PlaylistType)
 
     @staticmethod
-    def mutate(root, info, id, active=None, published=None, tracks=None, title=None, audio_url=None):
+    def mutate(root, info, id, index=None, active=None, published=None, tracks=[], title=None, audio_url=None):
         ok = False
         playlist_instance = Playlist.objects.get(pk=id)
         if playlist_instance:
             ok = True
-            tracks = []
+            new_tracks = []
             for track_id in tracks:
                 track = Track.objects.get(pk=track_id)
                 if track is None:
                     return UpdatePlaylist(ok=False, track=None)
-                tracks.append(track)
+                new_tracks.append(track)
+
+            if index: playlist_instance.index = index
             if title: playlist_instance.title = title
             if audio_url: playlist_instance.audio_url = audio_url
             if active != None: playlist_instance.active = active
             if published != None: playlist_instance.published = published
             playlist_instance.save()
 
-            if len(tracks): playlist_instance.tracks.set(tracks)
+            if len(tracks): playlist_instance.tracks.set(new_tracks)
             return UpdatePlaylist(ok=ok, playlist=playlist_instance)
         return UpdatePlaylist(ok=ok, playlist=None)
 
@@ -227,6 +239,7 @@ class CreateTrack(graphene.Mutation):
 class UpdateTrack(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
+        index = graphene.Int()
         transcript = graphene.String()
         audio_url = graphene.String()
         duration = graphene.String()
@@ -237,11 +250,13 @@ class UpdateTrack(graphene.Mutation):
     track = graphene.Field(TrackType)
 
     @staticmethod
-    def mutate(root, info, id, active=None, published=None, duration=None, transcript=None, audio_url=None):
+    def mutate(root, info, id, index=None, active=None, published=None, duration=None, transcript=None, audio_url=None):
         ok = False
         track_instance = Track.objects.get(pk=id)
         if track_instance:
             ok = True
+            if index:
+                track_instance.index = index
             if audio_url:
                 track_instance.audio_url = audio_url
             if transcript:
