@@ -33,14 +33,17 @@ class TopicType(DjangoObjectType):
         model = Topic
         fields=("title", "index", "audio_url", "active", "published", "playlists")
 
+class LanguageInput(graphene.InputObjectType):
+    name = graphene.String()
+    audio_url = graphene.String()
+    published = graphene.Boolean()
+
 class TrackInput(graphene.InputObjectType):
     index = graphene.ID()
     title = graphene.String()
     audio_url = graphene.String()
     transcript = graphene.String()
     duration = graphene.Int()
-    #created_at = graphene.DateTime()
-    #updated_at = graphene.DateTime()
     active = graphene.Boolean()
     published = graphene.Boolean()
     
@@ -59,6 +62,63 @@ class TopicInput(graphene.InputObjectType):
     active = graphene.Boolean()
     published = graphene.Boolean()
     playlists = graphene.List(graphene.ID)
+
+class CreateLanguage(graphene.Mutation):
+    class Arguments:
+        input = LanguageInput(required=True)
+    
+    ok = graphene.Boolean()
+    language = graphene.Field(LanguageType)
+
+    @staticmethod
+    def mutate(root, info, input=None):
+        ok = True
+        lang_instance = Language(
+            name = input.name,
+            audio_url = input.audio_url,
+            published = input.published
+            )
+        lang_instance.save()
+        return CreateLanguage(ok=ok, language=lang_instance)
+
+class UpdateLanguage(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        name = graphene.String()
+        audio_url = graphene.String()
+        published = graphene.Boolean()
+
+    ok = graphene.Boolean()
+    language = graphene.Field(LanguageType)
+
+    @staticmethod
+    def mutate(root, info, id, name=None, published=None, audio_url=None):
+        ok = False
+        lang_instance = Language.objects.get(pk=id)
+        if lang_instance:
+            ok = True
+            if audio_url:
+                lang_instance.audio_url = audio_url
+            if name:
+                lang_instance.transcript = name
+            if published != None:
+                lang_instance.published = published
+
+            lang_instance.save()
+            return UpdateLanguage(ok=ok, language=lang_instance)
+        return UpdateLanguage(ok=ok, language=None)
+
+class DeleteLanguage(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+    
+    ok = graphene.Boolean()
+
+    @staticmethod
+    def mutate(root, info, id):
+        obj = Language.objects.get(pk=id)
+        obj.delete()
+        return DeleteLanguage(ok=True)
 
 class CreateTopic(graphene.Mutation):
     class Arguments:
@@ -267,6 +327,10 @@ class UpdateTrack(graphene.Mutation):
                 track_instance.active = active
             if published != None:
                 track_instance.published = published
+
+            # Update the updated_at time
+            track_instance.updated_at = timezone.now()
+
             track_instance.save()
             return UpdateTrack(ok=ok, track=track_instance)
         return UpdateTrack(ok=ok, track=None)
@@ -295,6 +359,10 @@ class Mutation(graphene.ObjectType):
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
     delete_track = DeleteTrack.Field()
+
+    create_language = CreateLanguage.Field()
+    update_language = UpdateLanguage.Field()
+    delete_language = DeleteLanguage.Field()
 
 class Query(graphene.ObjectType):
     topic = graphene.Field(TopicType, id=graphene.Int())

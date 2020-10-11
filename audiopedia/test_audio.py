@@ -7,6 +7,47 @@ from audios.schema import schema
 
 import collections
 
+query_lang = """
+query {
+  allLanguages {
+      name
+  }
+}
+"""
+create_lang = """
+mutation createLanguage {
+  createLanguage(input: {
+    name: "English",
+    audioUrl: "www.test.url",
+    published: true
+  }) {
+    ok
+    language {
+        id
+    }
+  }
+}
+"""
+
+update_lang = """
+mutation updateLanguage {
+  updateLanguage(id: 1, published: false) {
+	ok
+    language {
+        published
+    }
+  }
+}
+"""
+
+delete_lang = """
+mutation deleteLanguage {
+  deleteLanguage(id: 1) {
+	ok
+  }
+}
+"""
+
 query_track = """
 query {
   allTracks {
@@ -279,3 +320,27 @@ class TestSchemas(TestCase):
         self.client.execute(create_topic)
         result = self.client.execute(delete_topic)
         assert result == {'data': collections.OrderedDict([('deleteTopic', {'ok': True})])}
+
+    """
+    Check the ones below
+    """
+    def test_create_lang(self):
+        result = self.client.execute(create_lang)
+        assert result == {'data': collections.OrderedDict([('createLanguage', {'ok': True, 'language': {'id': '1'}})])}
+    
+    def test_query_lang(self):
+        self.client.execute(create_lang)
+        result = self.client.execute(query_lang)
+        assert result == {'data': {'allLanguages': [{'name': 'English'}]}}
+    
+    def test_update_lang(self):
+        self.client.execute(create_lang)
+        result = self.client.execute(update_lang)
+        assert result == {'data': collections.OrderedDict([('updateLanguage', {'ok': True, 'language': {'published': False}})])}
+    
+    def test_delete_lang(self):
+        self.client.execute(create_lang)
+        result = self.client.execute(delete_lang)
+        assert result == {'data': collections.OrderedDict([('deleteLanguage', {'ok': True})])}
+        
+    
