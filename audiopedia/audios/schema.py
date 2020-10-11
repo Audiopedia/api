@@ -24,6 +24,11 @@ class TopicType(DjangoObjectType):
         model = Topic
         fields=("title", "index", "audio_url", "active", "published", "playlists")
 
+class LanguageInput(graphene.InputObjectType):
+    name = graphene.String()
+    audio_url = graphene.String()
+    published = graphene.Boolean()
+
 class TrackInput(graphene.InputObjectType):
     index = graphene.ID()
     title = graphene.String()
@@ -51,6 +56,25 @@ class TopicInput(graphene.InputObjectType):
     published = graphene.Boolean()
     playlists = graphene.List(PlaylistInput)
 
+class CreateLanguage(graphene.Mutation):
+    class Arguments:
+        input = PlaylistInput(required=True)
+    
+    ok = graphene.Boolean()
+    language = graphene.Field(LanguageType)
+
+    @staticmethod
+    def mutate(root, info, input=None):
+        ok = True
+        language_instance = Language(
+            name=input.name,
+            audio_url = input.audio_url,
+            published = input.published,
+            )
+        topic_instance.save()
+        topic_instance.playlists.set(playlists)
+        return CreateTopic(ok=ok, topic=topic_instance)
+ 
 class CreateTopic(graphene.Mutation):
     class Arguments:
         input = TopicInput(required=True)
@@ -255,6 +279,7 @@ class Mutation(graphene.ObjectType):
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
     delete_track = DeleteTrack.Field()
+    create_language = CreateLanguage.Field()
 
 class Query(graphene.ObjectType):
     all_languages = graphene.List(LanguageType)
