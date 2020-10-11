@@ -55,7 +55,7 @@ class PlaylistInput(graphene.InputObjectType):
     audio_url = graphene.String()
     active = graphene.Boolean()
     published = graphene.Boolean()
-    tracks = graphene.List(TrackInput)
+    tracks = graphene.List(graphene.ID)
 
 class TopicInput(graphene.InputObjectType):
     index = graphene.ID()
@@ -143,12 +143,13 @@ class CreatePlaylist(graphene.Mutation):
     def mutate(root, info, input=None):
         ok = True
         tracks = []
-        for track_input in input.tracks:
-            track = Track.objects.get(index=track_input.index)
+        for track_id in input.tracks:
+            track = Track.objects.get(pk=track_id)
             if track is None:
                 return CreatePlaylist(ok=False, playlist=None)
-            playlists.append(playlist)
+            tracks.append(track)
         playlist_instance = Playlist(
+            index = input.index,
             title=input.title,
             audio_url = input.audio_url,
             active = input.active,
@@ -228,7 +229,7 @@ class CreateTrack(graphene.Mutation):
 
 class UpdateTrack(graphene.Mutation):
     class Arguments:
-        index = graphene.ID(required=True)
+        id = graphene.ID(required=True)
         transcript = graphene.String()
         audio_url = graphene.String()
         duration = graphene.String()
@@ -237,9 +238,9 @@ class UpdateTrack(graphene.Mutation):
     #track = graphene.Field(TrackType)
 
     @staticmethod
-    def mutate(root, info, index, duration, transcript=None, audio_url=None):
+    def mutate(root, info, id, duration, transcript=None, audio_url=None):
         ok = False
-        track_instance = Track.objects.get(index=index)
+        track_instance = Track.objects.get(pk=id)
         if track_instance:
             ok = True
             if audio_url:
@@ -254,13 +255,13 @@ class UpdateTrack(graphene.Mutation):
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:
-        index = graphene.ID(required=True)
+        id = graphene.ID(required=True)
     
     ok = graphene.Boolean()
 
     @staticmethod
-    def mutate(root, info, index):
-        obj = Track.objects.get(index=index)
+    def mutate(root, info, id):
+        obj = Track.objects.get(pk=id)
         obj.delete()
         return DeleteTrack(ok=True)
 

@@ -10,6 +10,7 @@ import collections
 query_track = """
 query {
   allTracks {
+    id
     title
     index
     audioUrl
@@ -41,7 +42,7 @@ mutation createTrack {
 
 update_track = """
 mutation updateTrack {
-  updateTrack(index: 0, transcript: "Hello", duration: "30") {
+  updateTrack(id: 1, transcript: "Hello", duration: "30") {
 		ok
   }
 }
@@ -49,8 +50,26 @@ mutation updateTrack {
 
 delete_track = """
 mutation deleteTrack {
-  deleteTrack(index: 0) {
+  deleteTrack(id: 1) {
 		ok
+  }
+}
+"""
+
+create_playlist = """
+mutation createPlaylist {
+  createPlaylist(input: {
+		index: 0,
+    title: "Nutrition",
+    audioUrl: "test.com",
+    active: true,
+    published: true,
+    tracks: [1]
+  }) {
+    ok
+    playlist {
+      id
+    }
   }
 }
 """
@@ -77,6 +96,7 @@ class TestSchemas(TestCase):
         assert result["data"]["allTracks"][0] == {
           'title': 'This is a test question?',
           'index': 0,
+          'id': '1',
           'audioUrl': 'www.test.url',
           'transcript': 'This is a test transcript.',
           'duration': 50,
@@ -99,3 +119,9 @@ class TestSchemas(TestCase):
         result = self.client.execute(query_track)
         print(result)
     """
+    
+    def test_create_playlist(self):
+        self.client.execute(create_track)
+        result = self.client.execute(create_playlist)
+        print(result)
+        
