@@ -1,6 +1,7 @@
 import graphene
 from graphene_django import DjangoObjectType
-from datetime import datetime, timedelta
+from datetime import timedelta
+from django.utils import timezone
 
 from .models import Language, Track, Playlist, Topic
 
@@ -143,7 +144,7 @@ class CreatePlaylist(graphene.Mutation):
         ok = True
         tracks = []
         for track_input in input.tracks:
-            track = Track.objects.get(pk=track_input.index)
+            track = Track.objects.get(index=track_input.index)
             if track is None:
                 return CreatePlaylist(ok=False, playlist=None)
             playlists.append(playlist)
@@ -217,8 +218,8 @@ class CreateTrack(graphene.Mutation):
             audio_url = input.audio_url,
             transcript = input.transcript,
             duration = input.duration,
-            created_at = datetime.now(), #RuntimeWarning: DateTimeField Track.created_at received a naive datetime (2020-10-06 15:33:10.176943) while time zone support is active.
-            updated_at = datetime.now(),
+            created_at = timezone.now(),
+            updated_at = timezone.now(),
             active = input.active,
             published = input.published
             )
@@ -233,7 +234,7 @@ class UpdateTrack(graphene.Mutation):
         duration = graphene.String()
 
     ok = graphene.Boolean()
-    track = graphene.Field(TrackType)
+    #track = graphene.Field(TrackType)
 
     @staticmethod
     def mutate(root, info, index, duration, transcript=None, audio_url=None):

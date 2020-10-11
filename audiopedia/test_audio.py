@@ -5,7 +5,7 @@ from graphene.test import Client
 from audios.models import *
 from audios.schema import schema
 
-from collections import OrderedDict 
+import collections
 
 query_track = """
 query {
@@ -25,7 +25,7 @@ mutation createTrack {
   createTrack(input: {
     title: "This is a test question?",
     index: 0,
-    audioUrl:"www.test.url",
+    audioUrl: "www.test.url",
     transcript: "This is a test transcript.",
     duration: 50,
     active: true,
@@ -41,41 +41,61 @@ mutation createTrack {
 
 update_track = """
 mutation updateTrack {
-  updateTrack(index: 1, transcript: "Hello", duration: "0:02:30") {
+  updateTrack(index: 0, transcript: "Hello", duration: "30") {
 		ok
-    track {
-      id
-    }
   }
 }
 """
 
-"""
-mutation updateTrack {
-  updateTrack(index: 1, transcript: "Hello", duration: "0:02:30") {
+delete_track = """
+mutation deleteTrack {
+  deleteTrack(index: 0) {
 		ok
-    track {
-      id
-    }
   }
 }
 """
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestSchemas(TestCase):
     def setUp(self):
         self.client = Client(schema)
- 
+    
     def test_create_track(self):
         result = self.client.execute(create_track)
-        print(Track.objects.all())
-
-        assert result["data"] == OrderedDict({
+        assert result["data"] == collections.OrderedDict({
           "createTrack": {
             "ok": True,
             "track": {
-              "index": "0"
+              "index": 0
             }
           }
         })
-        
+    
+    def test_query_track(self):
+        self.client.execute(create_track)
+        result = self.client.execute(query_track)
+        assert result["data"]["allTracks"][0] == {
+          'title': 'This is a test question?',
+          'index': 0,
+          'audioUrl': 'www.test.url',
+          'transcript': 'This is a test transcript.',
+          'duration': 50,
+          'active': True,
+          'published': True
+        }
+
+    def test_update_track(self):
+        self.client.execute(create_track)
+        result = self.client.execute(update_track)
+        assert result["data"] == collections.OrderedDict([('updateTrack', {'ok': True})])
+
+    # DELETE QUERIES DOESN'T WORK
+    """
+    def test_delete_track(self):
+        self.client.execute(create_track)
+        result = self.client.execute(delete_track)
+        assert result["data"] == collections.OrderedDict([('deleteTrack', {'ok': True})])
+        # Query tracks to make sure there are no tracks
+        result = self.client.execute(query_track)
+        print(result)
+    """
