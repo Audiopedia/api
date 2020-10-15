@@ -34,38 +34,38 @@ class TopicType(DjangoObjectType):
         fields=("title", "index", "audio_url", "active", "published", "playlists")
 
 class LanguageInput(graphene.InputObjectType):
-    name = graphene.String()
-    audio_url = graphene.String()
-    published = graphene.Boolean()
+    name = graphene.String(description="Name of the language")
+    audio_url = graphene.String(description="URL to audio directory associated with the language")
+    published = graphene.Boolean(description="Visible to user if true")
 
 class TrackInput(graphene.InputObjectType):
-    index = graphene.ID()
-    title = graphene.String()
-    audio_url = graphene.String()
-    transcript = graphene.String()
-    duration = graphene.Int()
-    active = graphene.Boolean()
-    published = graphene.Boolean()
+    index = graphene.ID(description="Position of the track within a playlist")
+    title = graphene.String(description="Title of the track")
+    audio_url = graphene.String(description="URL to the audio file associated with this track")
+    transcript = graphene.String(description="Transcript that goes along with this track")
+    duration = graphene.Int(description="Duration of the track in seconds")
+    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    published = graphene.Boolean(description="Visible to user if true")
     
 class PlaylistInput(graphene.InputObjectType):
-    index = graphene.ID()
-    title = graphene.String()
-    audio_url = graphene.String()
-    active = graphene.Boolean()
-    published = graphene.Boolean()
-    tracks = graphene.List(graphene.ID)
+    index = graphene.ID(description="Position of the playlist within a topic")
+    title = graphene.String(description="Title of the playlist")
+    audio_url = graphene.String(description="URL to the audio directory associated with this playlist")
+    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    published = graphene.Boolean(description="Visible to user if true")
+    tracks = graphene.List(graphene.ID, description="List of all the IDs of tracks this playlist contains")
 
 class TopicInput(graphene.InputObjectType):
-    index = graphene.ID()
-    title = graphene.String()
-    audio_url = graphene.String()
-    active = graphene.Boolean()
-    published = graphene.Boolean()
-    playlists = graphene.List(graphene.ID)
+    index = graphene.ID(description="Position/placement of the topic among a list of topics")
+    title = graphene.String(description="Title of the topic")
+    audio_url = graphene.String(description="URL to the audio directory associated with this topic")
+    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    published = graphene.Boolean(description="Visible to user if true")
+    playlists = graphene.List(graphene.ID, description="List of all the IDs of playlists this topic contains")
 
 class CreateLanguage(graphene.Mutation):
     class Arguments:
-        input = LanguageInput(required=True)
+        input = LanguageInput(required=True, description="Look at LanguageInput definition for more details")
     
     ok = graphene.Boolean()
     language = graphene.Field(LanguageType)
@@ -83,10 +83,10 @@ class CreateLanguage(graphene.Mutation):
 
 class UpdateLanguage(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        name = graphene.String()
-        audio_url = graphene.String()
-        published = graphene.Boolean()
+        id = graphene.ID(required=True, description="ID of the language to be updated")
+        name = graphene.String(description="New name for the language")
+        audio_url = graphene.String(description="New URL")
+        published = graphene.Boolean(description="Update published status")
 
     ok = graphene.Boolean()
     language = graphene.Field(LanguageType)
@@ -110,7 +110,7 @@ class UpdateLanguage(graphene.Mutation):
 
 class DeleteLanguage(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        id = graphene.ID(required=True, description="ID of the language to be deleted")
     
     ok = graphene.Boolean()
 
@@ -122,7 +122,7 @@ class DeleteLanguage(graphene.Mutation):
 
 class CreateTopic(graphene.Mutation):
     class Arguments:
-        input = TopicInput(required=True)
+        input = TopicInput(required=True, description="Look at TopicInput definition for more details")
     
     ok = graphene.Boolean()
     topic = graphene.Field(TopicType)
@@ -149,13 +149,13 @@ class CreateTopic(graphene.Mutation):
         
 class UpdateTopic(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        index = graphene.Int()
-        title = graphene.String()
-        audio_url = graphene.String()
-        active = graphene.Boolean()
-        published = graphene.Boolean()
-        playlists = graphene.List(graphene.ID)
+        id = graphene.ID(required=True, description="ID of the topic to be updated")
+        index = graphene.Int(description="New position of the topic among a list of topics")
+        title = graphene.String(description="New title for the topic")
+        audio_url = graphene.String(description="New URL")
+        active = graphene.Boolean(description="Updated active status")
+        published = graphene.Boolean(description="Updated published status")
+        playlists = graphene.List(graphene.ID, description="New playlist order")
 
     ok = graphene.Boolean()
     topic = graphene.Field(TopicType)
@@ -186,7 +186,7 @@ class UpdateTopic(graphene.Mutation):
 
 class DeleteTopic(graphene.Mutation):
     class Arguments:
-        id = graphene.ID()
+        id = graphene.ID(description="ID of the topic to be deleted")
     ok = graphene.Boolean()
 
     @staticmethod
@@ -198,7 +198,7 @@ class DeleteTopic(graphene.Mutation):
 
 class CreatePlaylist(graphene.Mutation):
     class Arguments:
-        input = PlaylistInput(required=True)
+        input = PlaylistInput(required=True, description="Look at PlaylistInput definition for more details")
     
     ok = graphene.Boolean()
     playlist = graphene.Field(PlaylistType)
@@ -225,13 +225,13 @@ class CreatePlaylist(graphene.Mutation):
         
 class UpdatePlaylist(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        index = graphene.Int()
-        title = graphene.String()
-        audio_url = graphene.String()
-        tracks = graphene.List(graphene.ID)
-        active = graphene.Boolean()
-        published = graphene.Boolean()
+        id = graphene.ID(required=True, description="ID of the playlist to be updated")
+        index = graphene.Int(description="New position of the playlist within a topic")
+        title = graphene.String(description="New title")
+        audio_url = graphene.String(description="New URL")
+        tracks = graphene.List(graphene.ID, description="New ordering of tracks")
+        active = graphene.Boolean(description="New active status")
+        published = graphene.Boolean(description="New upblished status")
 
     ok = graphene.Boolean()
     playlist = graphene.Field(PlaylistType)
@@ -262,7 +262,7 @@ class UpdatePlaylist(graphene.Mutation):
 
 class DeletePlaylist(graphene.Mutation):
     class Arguments:
-        id = graphene.ID()
+        id = graphene.ID(description="ID of playlist to be deleted")
     
     ok = graphene.Boolean()
 
@@ -274,7 +274,7 @@ class DeletePlaylist(graphene.Mutation):
 
 class CreateTrack(graphene.Mutation):
     class Arguments:
-        input = TrackInput(required=True)
+        input = TrackInput(required=True, description="Look at TrackInput definition for more details")
     
     ok = graphene.Boolean()
     track = graphene.Field(TrackType)
@@ -298,13 +298,13 @@ class CreateTrack(graphene.Mutation):
 
 class UpdateTrack(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
-        index = graphene.Int()
-        transcript = graphene.String()
-        audio_url = graphene.String()
-        duration = graphene.String()
-        active = graphene.Boolean()
-        published = graphene.Boolean()
+        id = graphene.ID(required=True, description="ID of track to be updated")
+        index = graphene.Int(description="New position of the track within a playlist")
+        transcript = graphene.String(description="New transcript")
+        audio_url = graphene.String(description="New URL")
+        duration = graphene.String(description="New duration")
+        active = graphene.Boolean(description="New active status")
+        published = graphene.Boolean(description="New published status")
 
     ok = graphene.Boolean()
     track = graphene.Field(TrackType)
@@ -337,7 +337,7 @@ class UpdateTrack(graphene.Mutation):
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        id = graphene.ID(required=True, description="ID of the track to be deleted")
     
     ok = graphene.Boolean()
 
