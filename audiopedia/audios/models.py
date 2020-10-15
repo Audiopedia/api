@@ -14,14 +14,14 @@ class Track(models.Model):
     duration = models.IntegerField(help_text="Duration in seconds.") # Duration in seconds
     created_at = models.DateTimeField(help_text="When the track was created.", default=datetime.now, blank=True)
     updated_at = models.DateTimeField(help_text="When the track was last updated.", default=datetime.now, blank=True)
-    active = models.BooleanField(help_text="Status that indicates if this track is being actively updated.", default=True)
+    active = models.BooleanField(help_text="Inactivate to temporarily delete track and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide whether this track is ready for users to see.", default=True)
 
 class Playlist(models.Model):
     title = models.CharField(help_text="The title of the playlist.", max_length=200)
     index = models.IntegerField(help_text="The position of the playlist within a topic.", unique=True)
     audio_url = models.URLField(help_text="URL to the audio directory associated with the playlist.")
-    active = models.BooleanField(help_text="Status that indicates if this playlist is being actively updated.", default=True)
+    active = models.BooleanField(help_text="Inactivate to temporarily delete playlist and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the playlist from the users.", default=True)
     tracks = models.ManyToManyField(Track, help_text="A list of all the tracks this playlist contains.")
 
@@ -29,7 +29,7 @@ class Topic(models.Model):
     title = models.CharField(help_text="The name of the topic.", max_length=200)
     index = models.IntegerField(help_text="The order/position of the topic within the interface.", unique=True)
     audio_url = models.URLField(help_text="URL to the audio directory associated with the topic.")
-    active = models.BooleanField(help_text="Status that indicates if this topic is being actively updated.", default=True)
+    active = models.BooleanField(help_text="Inactivate to temporarily delete topic and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the topic from the users.", default=True)
     playlists = models.ManyToManyField(Playlist, help_text="A list of all the playlists this topic contains.")
 

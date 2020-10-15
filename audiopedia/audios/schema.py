@@ -44,14 +44,14 @@ class TrackInput(graphene.InputObjectType):
     audio_url = graphene.String(description="URL to the audio file associated with this track")
     transcript = graphene.String(description="Transcript that goes along with this track")
     duration = graphene.Int(description="Duration of the track in seconds")
-    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    active = graphene.Boolean(description="Inactivate to temporarily delete track and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
     
 class PlaylistInput(graphene.InputObjectType):
     index = graphene.ID(description="Position of the playlist within a topic")
     title = graphene.String(description="Title of the playlist")
     audio_url = graphene.String(description="URL to the audio directory associated with this playlist")
-    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    active = graphene.Boolean(description="Inactivate to temporarily delete playlist and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
     tracks = graphene.List(graphene.ID, description="List of all the IDs of tracks this playlist contains")
 
@@ -59,7 +59,7 @@ class TopicInput(graphene.InputObjectType):
     index = graphene.ID(description="Position/placement of the topic among a list of topics")
     title = graphene.String(description="Title of the topic")
     audio_url = graphene.String(description="URL to the audio directory associated with this topic")
-    active = graphene.Boolean(description="Status indicating if this is being actively updated")
+    active = graphene.Boolean(description="Inactivate to temporarily delete topic and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
     playlists = graphene.List(graphene.ID, description="List of all the IDs of playlists this topic contains")
 
