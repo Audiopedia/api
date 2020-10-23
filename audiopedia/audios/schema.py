@@ -58,7 +58,7 @@ class TopicInput(graphene.InputObjectType):
 
 class CreateLanguage(graphene.Mutation):
     class Arguments:
-        input = PlaylistInput(required=True)
+        input = PlaylistInput(required=True) # why is this required??
     
     ok = graphene.Boolean()
     language = graphene.Field(LanguageType)
