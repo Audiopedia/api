@@ -95,7 +95,7 @@ mutation updateTrack {
 delete_track = """
 mutation deleteTrack {
   deleteTrack(id: 1) {
-	ok
+	  ok
   }
 }
 """
