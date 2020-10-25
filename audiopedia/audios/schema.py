@@ -8,12 +8,12 @@ from .models import Language, Track, Playlist, Topic
 class LanguageType(DjangoObjectType):
     class Meta:
         model = Language
-        fields = ('id', "name", "audio_url", "published")
+        fields = ("id", "name", "audio_url", "published")
 
 class TrackType(DjangoObjectType):
     class Meta:
         model = Track
-        fields = ('id', "title", "index", "audio_url", "transcript", "duration", "created_at", "updated_at", "active", "published")
+        fields = ("id", "title", "index", "audio_url", "transcript", "duration", "created_at", "updated_at", "active", "published")
 
 class PlaylistType(DjangoObjectType):
 
@@ -26,12 +26,12 @@ class PlaylistType(DjangoObjectType):
 
     class Meta:
         model = Playlist
-        fields = ('id', "title", "index", "audio_url", "active", "published", "tracks")
+        fields = ("id", "title", "index", "audio_url", "active", "published", "tracks")
 
 class TopicType(DjangoObjectType):
     class Meta:
         model = Topic
-        fields=('id', "title", "index", "audio_url", "active", "published", "playlists")
+        fields=("id", "title", "index", "audio_url", "active", "published", "playlists")
 
 class LanguageInput(graphene.InputObjectType):
     name = graphene.String(description="Name of the language")
