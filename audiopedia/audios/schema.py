@@ -2,7 +2,8 @@ import graphene
 from graphene_django import DjangoObjectType
 from datetime import timedelta
 from django.utils import timezone
-
+from django.contrib.auth import get_user_model
+import graphql_jwt
 from .models import Language, Track, Playlist, Topic
 
 class LanguageType(DjangoObjectType):
@@ -347,11 +348,32 @@ class DeleteTrack(graphene.Mutation):
         obj.delete()
         return DeleteTrack(ok=True)
 
+class UserType(DjangoObjectType):
+    class Meta:
+        model = get_user_model()
+
+
+class CreateUser(graphene.Mutation):
+    user = graphene.Field(UserType)
+
+    class Arguments:
+        username = graphene.String(required=True, description="A new username")
+        password = graphene.String(required=True, description="A secure password")
+
+    def mutate(self, info, username, password):
+        user = get_user_model()(
+            username=username,
+        )
+        user.set_password(password)
+        user.save()
+
+        return CreateUser(user=user)
+
 class Mutation(graphene.ObjectType):
     create_topic = CreateTopic.Field()
     update_topic = UpdateTopic.Field()
     delete_topic = DeleteTopic.Field()
-
+    
     create_playlist = CreatePlaylist.Field()
     update_playlist = UpdatePlaylist.Field()
     delete_playlist = DeletePlaylist.Field()
@@ -359,10 +381,16 @@ class Mutation(graphene.ObjectType):
     create_track = CreateTrack.Field()
     update_track = UpdateTrack.Field()
     delete_track = DeleteTrack.Field()
-
+    
     create_language = CreateLanguage.Field()
     update_language = UpdateLanguage.Field()
     delete_language = DeleteLanguage.Field()
+    create_user = CreateUser.Field()
+    
+    # Authentication fields
+    token_auth = graphql_jwt.ObtainJSONWebToken.Field()
+    verify_token = graphql_jwt.Verify.Field()
+    refresh_token = graphql_jwt.Refresh.Field()
 
 class Query(graphene.ObjectType):
     topic = graphene.Field(TopicType, id=graphene.Int())
@@ -375,6 +403,19 @@ class Query(graphene.ObjectType):
     all_topics = graphene.List(TopicType)
     all_playlists = graphene.List(PlaylistType)
     all_tracks = graphene.List(TrackType)
+    
+    all_users = graphene.List(UserType)
+    current_user = graphene.Field(UserType)
+    
+    def resolve_all_users(self, info):
+        return get_user_model().objects.all()
+
+    def resolve_current_user(self, info):
+        user = info.context.user
+        if user.is_anonymous:
+            raise Exception('Not logged in!')
+
+        return user
 
     # get topic by id
     def resolve_topic(self, info, **kwargs):

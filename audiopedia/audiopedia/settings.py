@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'graphql_jwt.middleware.JSONWebTokenMiddleware',
 ]
 
 ROOT_URLCONF = 'audiopedia.urls'
@@ -109,6 +110,10 @@ AUTH_PASSWORD_VALIDATORS = [
 GRAPHENE = {
     'SCHEMA': 'audiopedia.schema.schema',
 }
+AUTHENTICATION_BACKENDS = [
+    'graphql_jwt.backends.JSONWebTokenBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
