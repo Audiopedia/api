@@ -6,6 +6,12 @@ from django.contrib.auth import get_user_model
 import graphql_jwt
 from .models import Language, Track, Playlist, Topic
 
+def check_logged_in(info):
+    user = info.context.user
+    if user.is_anonymous:
+        raise Exception('User not authenticated')
+    return True
+
 class LanguageType(DjangoObjectType):
     class Meta:
         model = Language
@@ -73,14 +79,15 @@ class CreateLanguage(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, input=None):
-        ok = True
-        lang_instance = Language(
-            name = input.name,
-            audio_url = input.audio_url,
-            published = input.published
-            )
-        lang_instance.save()
-        return CreateLanguage(ok=ok, language=lang_instance)
+        if check_logged_in(info):
+            ok = True
+            lang_instance = Language(
+                name = input.name,
+                audio_url = input.audio_url,
+                published = input.published
+                )
+            lang_instance.save()
+            return CreateLanguage(ok=ok, language=lang_instance)
 
 class UpdateLanguage(graphene.Mutation):
     class Arguments:
@@ -94,20 +101,21 @@ class UpdateLanguage(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, name=None, published=None, audio_url=None):
-        ok = False
-        lang_instance = Language.objects.get(pk=id)
-        if lang_instance:
-            ok = True
-            if audio_url:
-                lang_instance.audio_url = audio_url
-            if name:
-                lang_instance.transcript = name
-            if published != None:
-                lang_instance.published = published
+        if check_logged_in(info):
+            ok = False
+            lang_instance = Language.objects.get(pk=id)
+            if lang_instance:
+                ok = True
+                if audio_url:
+                    lang_instance.audio_url = audio_url
+                if name:
+                    lang_instance.transcript = name
+                if published != None:
+                    lang_instance.published = published
 
-            lang_instance.save()
-            return UpdateLanguage(ok=ok, language=lang_instance)
-        return UpdateLanguage(ok=ok, language=None)
+                lang_instance.save()
+                return UpdateLanguage(ok=ok, language=lang_instance)
+            return UpdateLanguage(ok=ok, language=None)
 
 class DeleteLanguage(graphene.Mutation):
     class Arguments:
@@ -117,9 +125,10 @@ class DeleteLanguage(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id):
-        obj = Language.objects.get(pk=id)
-        obj.delete()
-        return DeleteLanguage(ok=True)
+        if check_logged_in(info):
+            obj = Language.objects.get(pk=id)
+            obj.delete()
+            return DeleteLanguage(ok=True)
 
 class CreateTopic(graphene.Mutation):
     class Arguments:
@@ -130,23 +139,24 @@ class CreateTopic(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, input=None):
-        ok = True
-        playlists = []
-        for playlist_id in input.playlists:
-            playlist = Playlist.objects.get(pk=playlist_id)
-            if playlist is None:
-                return CreateTopic(ok=False, playlist=None)
-            playlists.append(playlist)
-        topic_instance = Topic(
-            index = input.index,
-            title=input.title,
-            audio_url = input.audio_url,
-            active = input.active,
-            published = input.published,
-            )
-        topic_instance.save()
-        topic_instance.playlists.set(playlists)
-        return CreateTopic(ok=ok, topic=topic_instance)
+        if check_logged_in(info):
+            ok = True
+            playlists = []
+            for playlist_id in input.playlists:
+                playlist = Playlist.objects.get(pk=playlist_id)
+                if playlist is None:
+                    return CreateTopic(ok=False, playlist=None)
+                playlists.append(playlist)
+            topic_instance = Topic(
+                index = input.index,
+                title=input.title,
+                audio_url = input.audio_url,
+                active = input.active,
+                published = input.published,
+                )
+            topic_instance.save()
+            topic_instance.playlists.set(playlists)
+            return CreateTopic(ok=ok, topic=topic_instance)
         
 class UpdateTopic(graphene.Mutation):
     class Arguments:
@@ -163,27 +173,28 @@ class UpdateTopic(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, playlists=[], title=None, audio_url=None):
-        ok = False
-        topic_instance = Topic.objects.get(pk=id)
-        if topic_instance:
-            ok = True
-            new_playlists = []
-            for playlist_id in playlists:
-                playlist = Playlist.objects.get(pk=playlist_id)
-                if playlist is None:
-                    return UpdateTopic(ok=False, playlist=None)
-                playlists.append(new_playlists)
+        if check_logged_in(info):
+            ok = False
+            topic_instance = Topic.objects.get(pk=id)
+            if topic_instance:
+                ok = True
+                new_playlists = []
+                for playlist_id in playlists:
+                    playlist = Playlist.objects.get(pk=playlist_id)
+                    if playlist is None:
+                        return UpdateTopic(ok=False, playlist=None)
+                    playlists.append(new_playlists)
 
-            if index: topic_instance.index = index
-            if title: topic_instance.title = title
-            if audio_url: topic_instance.audio_url = audio_url
-            if active != None: topic_instance.active = active
-            if published != None: topic_instance.published = published
+                if index: topic_instance.index = index
+                if title: topic_instance.title = title
+                if audio_url: topic_instance.audio_url = audio_url
+                if active != None: topic_instance.active = active
+                if published != None: topic_instance.published = published
 
-            topic_instance.save()
-            topic_instance.playlists.set(new_playlists)
-            return UpdateTopic(ok=ok, topic=topic_instance)
-        return UpdateTopic(ok=ok, topic=None)
+                topic_instance.save()
+                topic_instance.playlists.set(new_playlists)
+                return UpdateTopic(ok=ok, topic=topic_instance)
+            return UpdateTopic(ok=ok, topic=None)
 
 class DeleteTopic(graphene.Mutation):
     class Arguments:
@@ -192,9 +203,10 @@ class DeleteTopic(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id):
-        obj = Topic.objects.get(pk=id)
-        obj.delete()
-        return DeleteTopic(ok=True)
+        if check_logged_in(info):
+            obj = Topic.objects.get(pk=id)
+            obj.delete()
+            return DeleteTopic(ok=True)
 
 
 class CreatePlaylist(graphene.Mutation):
@@ -206,23 +218,24 @@ class CreatePlaylist(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, input=None):
-        ok = True
-        tracks = []
-        for track_id in input.tracks:
-            track = Track.objects.get(pk=track_id)
-            if track is None:
-                return CreatePlaylist(ok=False, playlist=None)
-            tracks.append(track)
-        playlist_instance = Playlist(
-            index = input.index,
-            title=input.title,
-            audio_url = input.audio_url,
-            active = input.active,
-            published = input.published,
-            )
-        playlist_instance.save()
-        playlist_instance.tracks.set(tracks)
-        return CreatePlaylist(ok=ok, playlist=playlist_instance)
+        if check_logged_in(info):    
+            ok = True
+            tracks = []
+            for track_id in input.tracks:
+                track = Track.objects.get(pk=track_id)
+                if track is None:
+                    return CreatePlaylist(ok=False, playlist=None)
+                tracks.append(track)
+            playlist_instance = Playlist(
+                index = input.index,
+                title=input.title,
+                audio_url = input.audio_url,
+                active = input.active,
+                published = input.published,
+                )
+            playlist_instance.save()
+            playlist_instance.tracks.set(tracks)
+            return CreatePlaylist(ok=ok, playlist=playlist_instance)
         
 class UpdatePlaylist(graphene.Mutation):
     class Arguments:
@@ -239,27 +252,28 @@ class UpdatePlaylist(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, tracks=[], title=None, audio_url=None):
-        ok = False
-        playlist_instance = Playlist.objects.get(pk=id)
-        if playlist_instance:
-            ok = True
-            new_tracks = []
-            for track_id in tracks:
-                track = Track.objects.get(pk=track_id)
-                if track is None:
-                    return UpdatePlaylist(ok=False, track=None)
-                new_tracks.append(track)
+        if check_logged_in(info):
+            ok = False
+            playlist_instance = Playlist.objects.get(pk=id)
+            if playlist_instance:
+                ok = True
+                new_tracks = []
+                for track_id in tracks:
+                    track = Track.objects.get(pk=track_id)
+                    if track is None:
+                        return UpdatePlaylist(ok=False, track=None)
+                    new_tracks.append(track)
 
-            if index: playlist_instance.index = index
-            if title: playlist_instance.title = title
-            if audio_url: playlist_instance.audio_url = audio_url
-            if active != None: playlist_instance.active = active
-            if published != None: playlist_instance.published = published
-            playlist_instance.save()
+                if index: playlist_instance.index = index
+                if title: playlist_instance.title = title
+                if audio_url: playlist_instance.audio_url = audio_url
+                if active != None: playlist_instance.active = active
+                if published != None: playlist_instance.published = published
+                playlist_instance.save()
 
-            if len(tracks): playlist_instance.tracks.set(new_tracks)
-            return UpdatePlaylist(ok=ok, playlist=playlist_instance)
-        return UpdatePlaylist(ok=ok, playlist=None)
+                if len(tracks): playlist_instance.tracks.set(new_tracks)
+                return UpdatePlaylist(ok=ok, playlist=playlist_instance)
+            return UpdatePlaylist(ok=ok, playlist=None)
 
 class DeletePlaylist(graphene.Mutation):
     class Arguments:
@@ -269,9 +283,10 @@ class DeletePlaylist(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id):
-        obj = Playlist.objects.get(pk=id)
-        obj.delete()
-        return DeletePlaylist(ok=True)
+        if check_logged_in(info):
+            obj = Playlist.objects.get(pk=id)
+            obj.delete()
+            return DeletePlaylist(ok=True)
 
 class CreateTrack(graphene.Mutation):
     class Arguments:
@@ -282,20 +297,21 @@ class CreateTrack(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, input=None):
-        ok = True
-        track_instance = Track(
-            index =input.index,
-            title=input.title,
-            audio_url = input.audio_url,
-            transcript = input.transcript,
-            duration = input.duration,
-            created_at = timezone.now(),
-            updated_at = timezone.now(),
-            active = input.active,
-            published = input.published
-            )
-        track_instance.save()
-        return CreateTrack(ok=ok, track=track_instance)
+        if check_logged_in(info):
+            ok = True
+            track_instance = Track(
+                index =input.index,
+                title=input.title,
+                audio_url = input.audio_url,
+                transcript = input.transcript,
+                duration = input.duration,
+                created_at = timezone.now(),
+                updated_at = timezone.now(),
+                active = input.active,
+                published = input.published
+                )
+            track_instance.save()
+            return CreateTrack(ok=ok, track=track_instance)
 
 class UpdateTrack(graphene.Mutation):
     class Arguments:
@@ -312,29 +328,30 @@ class UpdateTrack(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, duration=None, transcript=None, audio_url=None):
-        ok = False
-        track_instance = Track.objects.get(pk=id)
-        if track_instance:
-            ok = True
-            if index:
-                track_instance.index = index
-            if audio_url:
-                track_instance.audio_url = audio_url
-            if transcript:
-                track_instance.transcript = transcript
-            if duration:
-                track_instance.duration = duration
-            if active != None:
-                track_instance.active = active
-            if published != None:
-                track_instance.published = published
+        if check_logged_in(info):
+            ok = False
+            track_instance = Track.objects.get(pk=id)
+            if track_instance:
+                ok = True
+                if index:
+                    track_instance.index = index
+                if audio_url:
+                    track_instance.audio_url = audio_url
+                if transcript:
+                    track_instance.transcript = transcript
+                if duration:
+                    track_instance.duration = duration
+                if active != None:
+                    track_instance.active = active
+                if published != None:
+                    track_instance.published = published
 
-            # Update the updated_at time
-            track_instance.updated_at = timezone.now()
+                # Update the updated_at time
+                track_instance.updated_at = timezone.now()
 
-            track_instance.save()
-            return UpdateTrack(ok=ok, track=track_instance)
-        return UpdateTrack(ok=ok, track=None)
+                track_instance.save()
+                return UpdateTrack(ok=ok, track=track_instance)
+            return UpdateTrack(ok=ok, track=None)
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:
@@ -344,9 +361,10 @@ class DeleteTrack(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, id):
-        obj = Track.objects.get(pk=id)
-        obj.delete()
-        return DeleteTrack(ok=True)
+        if check_logged_in(info):
+            obj = Track.objects.get(pk=id)
+            obj.delete()
+            return DeleteTrack(ok=True)
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -408,7 +426,8 @@ class Query(graphene.ObjectType):
     current_user = graphene.Field(UserType)
     
     def resolve_all_users(self, info):
-        return get_user_model().objects.all()
+        if check_logged_in(info):
+            return get_user_model().objects.all()
 
     def resolve_current_user(self, info):
         user = info.context.user
@@ -452,15 +471,19 @@ class Query(graphene.ObjectType):
     
     # get all languages/topics/playlists/tracks in database
     def resolve_all_languages(self, info, **kwargs):
-        return Language.objects.all()
+        if check_logged_in(info):
+            return Language.objects.all()
 
     def resolve_all_topics(self, info, **kwargs):
-        return Topic.objects.all()
+        if check_logged_in(info):
+            return Topic.objects.all()
 
     def resolve_all_playlists(self, info, **kwargs):
-        return Playlist.objects.all()
+        if check_logged_in(info):
+            return Playlist.objects.all()
 
     def resolve_all_tracks(self, info, **kwargs):
-        return Track.objects.all()
+        if check_logged_in(info):
+            return Track.objects.all()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
