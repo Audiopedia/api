@@ -15,4 +15,5 @@ singledispatch==3.4.0.3
 six==1.15.0
 sqlparse==0.3.1
 Unidecode==1.1.1
-django-graphql-jwt==1.6.1
+django-graphql-jwt==0.3.1
+PyJWT==1.7.1

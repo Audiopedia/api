@@ -10,7 +10,7 @@ def check_logged_in(info):
     user = info.context.user
     if user.is_anonymous:
         raise Exception('User not authenticated')
-    return True
+    return user
 
 class LanguageType(DjangoObjectType):
     class Meta:
@@ -74,12 +74,14 @@ class CreateLanguage(graphene.Mutation):
     class Arguments:
         input = LanguageInput(required=True, description="Look at LanguageInput definition for more details")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     language = graphene.Field(LanguageType)
 
     @staticmethod
     def mutate(root, info, input=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = True
             lang_instance = Language(
                 name = input.name,
@@ -87,7 +89,7 @@ class CreateLanguage(graphene.Mutation):
                 published = input.published
                 )
             lang_instance.save()
-            return CreateLanguage(ok=ok, language=lang_instance)
+            return CreateLanguage(ok=ok, language=lang_instance, user=user)
 
 class UpdateLanguage(graphene.Mutation):
     class Arguments:
@@ -96,12 +98,14 @@ class UpdateLanguage(graphene.Mutation):
         audio_url = graphene.String(description="New URL")
         published = graphene.Boolean(description="Update published status")
 
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     language = graphene.Field(LanguageType)
 
     @staticmethod
     def mutate(root, info, id, name=None, published=None, audio_url=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = False
             lang_instance = Language.objects.get(pk=id)
             if lang_instance:
@@ -114,38 +118,42 @@ class UpdateLanguage(graphene.Mutation):
                     lang_instance.published = published
 
                 lang_instance.save()
-                return UpdateLanguage(ok=ok, language=lang_instance)
-            return UpdateLanguage(ok=ok, language=None)
+                return UpdateLanguage(ok=ok, language=lang_instance, user=user)
+            return UpdateLanguage(ok=ok, language=None, user=user)
 
 class DeleteLanguage(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True, description="ID of the language to be deleted")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
     def mutate(root, info, id):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             obj = Language.objects.get(pk=id)
             obj.delete()
-            return DeleteLanguage(ok=True)
+            return DeleteLanguage(ok=True, user=user)
 
 class CreateTopic(graphene.Mutation):
     class Arguments:
         input = TopicInput(required=True, description="Look at TopicInput definition for more details")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     topic = graphene.Field(TopicType)
 
     @staticmethod
     def mutate(root, info, input=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = True
             playlists = []
             for playlist_id in input.playlists:
                 playlist = Playlist.objects.get(pk=playlist_id)
                 if playlist is None:
-                    return CreateTopic(ok=False, playlist=None)
+                    return CreateTopic(ok=False, playlist=None, user=user)
                 playlists.append(playlist)
             topic_instance = Topic(
                 index = input.index,
@@ -156,7 +164,7 @@ class CreateTopic(graphene.Mutation):
                 )
             topic_instance.save()
             topic_instance.playlists.set(playlists)
-            return CreateTopic(ok=ok, topic=topic_instance)
+            return CreateTopic(ok=ok, topic=topic_instance, user=user)
         
 class UpdateTopic(graphene.Mutation):
     class Arguments:
@@ -168,12 +176,14 @@ class UpdateTopic(graphene.Mutation):
         published = graphene.Boolean(description="Updated published status")
         playlists = graphene.List(graphene.ID, description="New playlist order")
 
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     topic = graphene.Field(TopicType)
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, playlists=[], title=None, audio_url=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = False
             topic_instance = Topic.objects.get(pk=id)
             if topic_instance:
@@ -182,7 +192,7 @@ class UpdateTopic(graphene.Mutation):
                 for playlist_id in playlists:
                     playlist = Playlist.objects.get(pk=playlist_id)
                     if playlist is None:
-                        return UpdateTopic(ok=False, playlist=None)
+                        return UpdateTopic(ok=False, playlist=None, user=user)
                     playlists.append(new_playlists)
 
                 if index: topic_instance.index = index
@@ -193,38 +203,43 @@ class UpdateTopic(graphene.Mutation):
 
                 topic_instance.save()
                 topic_instance.playlists.set(new_playlists)
-                return UpdateTopic(ok=ok, topic=topic_instance)
-            return UpdateTopic(ok=ok, topic=None)
+                return UpdateTopic(ok=ok, topic=topic_instance, user=user)
+            return UpdateTopic(ok=ok, topic=None, user=user)
 
 class DeleteTopic(graphene.Mutation):
     class Arguments:
         id = graphene.ID(description="ID of the topic to be deleted")
-    ok = graphene.Boolean()
+    
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
     def mutate(root, info, id):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             obj = Topic.objects.get(pk=id)
             obj.delete()
-            return DeleteTopic(ok=True)
+            return DeleteTopic(ok=True, user=user)
 
 
 class CreatePlaylist(graphene.Mutation):
     class Arguments:
         input = PlaylistInput(required=True, description="Look at PlaylistInput definition for more details")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     playlist = graphene.Field(PlaylistType)
 
     @staticmethod
     def mutate(root, info, input=None):
-        if check_logged_in(info):    
+        user = check_logged_in(info)
+        if user:    
             ok = True
             tracks = []
             for track_id in input.tracks:
                 track = Track.objects.get(pk=track_id)
                 if track is None:
-                    return CreatePlaylist(ok=False, playlist=None)
+                    return CreatePlaylist(ok=False, playlist=None, user=user)
                 tracks.append(track)
             playlist_instance = Playlist(
                 index = input.index,
@@ -235,7 +250,7 @@ class CreatePlaylist(graphene.Mutation):
                 )
             playlist_instance.save()
             playlist_instance.tracks.set(tracks)
-            return CreatePlaylist(ok=ok, playlist=playlist_instance)
+            return CreatePlaylist(ok=ok, playlist=playlist_instance, user=user)
         
 class UpdatePlaylist(graphene.Mutation):
     class Arguments:
@@ -247,12 +262,14 @@ class UpdatePlaylist(graphene.Mutation):
         active = graphene.Boolean(description="New active status")
         published = graphene.Boolean(description="New upblished status")
 
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
     playlist = graphene.Field(PlaylistType)
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, tracks=[], title=None, audio_url=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = False
             playlist_instance = Playlist.objects.get(pk=id)
             if playlist_instance:
@@ -261,7 +278,7 @@ class UpdatePlaylist(graphene.Mutation):
                 for track_id in tracks:
                     track = Track.objects.get(pk=track_id)
                     if track is None:
-                        return UpdatePlaylist(ok=False, track=None)
+                        return UpdatePlaylist(ok=False, track=None, user=user)
                     new_tracks.append(track)
 
                 if index: playlist_instance.index = index
@@ -272,32 +289,35 @@ class UpdatePlaylist(graphene.Mutation):
                 playlist_instance.save()
 
                 if len(tracks): playlist_instance.tracks.set(new_tracks)
-                return UpdatePlaylist(ok=ok, playlist=playlist_instance)
-            return UpdatePlaylist(ok=ok, playlist=None)
+                return UpdatePlaylist(ok=ok, playlist=playlist_instance, user=user)
+            return UpdatePlaylist(ok=ok, playlist=None, user=user)
 
 class DeletePlaylist(graphene.Mutation):
     class Arguments:
         id = graphene.ID(description="ID of playlist to be deleted")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
     def mutate(root, info, id):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             obj = Playlist.objects.get(pk=id)
             obj.delete()
-            return DeletePlaylist(ok=True)
+            return DeletePlaylist(ok=True, user=user)
 
 class CreateTrack(graphene.Mutation):
     class Arguments:
         input = TrackInput(required=True, description="Look at TrackInput definition for more details")
     
-    ok = graphene.Boolean()
-    track = graphene.Field(TrackType)
-
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
+    
     @staticmethod
     def mutate(root, info, input=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = True
             track_instance = Track(
                 index =input.index,
@@ -311,7 +331,7 @@ class CreateTrack(graphene.Mutation):
                 published = input.published
                 )
             track_instance.save()
-            return CreateTrack(ok=ok, track=track_instance)
+            return CreateTrack(ok=ok, track=track_instance, user=user)
 
 class UpdateTrack(graphene.Mutation):
     class Arguments:
@@ -325,10 +345,12 @@ class UpdateTrack(graphene.Mutation):
 
     ok = graphene.Boolean()
     track = graphene.Field(TrackType)
+    user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
     def mutate(root, info, id, index=None, active=None, published=None, duration=None, transcript=None, audio_url=None):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             ok = False
             track_instance = Track.objects.get(pk=id)
             if track_instance:
@@ -350,21 +372,23 @@ class UpdateTrack(graphene.Mutation):
                 track_instance.updated_at = timezone.now()
 
                 track_instance.save()
-                return UpdateTrack(ok=ok, track=track_instance)
-            return UpdateTrack(ok=ok, track=None)
+                return UpdateTrack(ok=ok, track=track_instance, user=user)
+            return UpdateTrack(ok=ok, track=None, user=user)
 
 class DeleteTrack(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True, description="ID of the track to be deleted")
     
-    ok = graphene.Boolean()
+    ok = graphene.Boolean(description="Success status")
+    user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
     def mutate(root, info, id):
-        if check_logged_in(info):
+        user = check_logged_in(info)
+        if user:
             obj = Track.objects.get(pk=id)
             obj.delete()
-            return DeleteTrack(ok=True)
+            return DeleteTrack(ok=True, user=user)
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -426,8 +450,8 @@ class Query(graphene.ObjectType):
     current_user = graphene.Field(UserType)
     
     def resolve_all_users(self, info):
-        if check_logged_in(info):
-            return get_user_model().objects.all()
+        #if check_logged_in(info):
+        return get_user_model().objects.all()
 
     def resolve_current_user(self, info):
         user = info.context.user
@@ -471,19 +495,19 @@ class Query(graphene.ObjectType):
     
     # get all languages/topics/playlists/tracks in database
     def resolve_all_languages(self, info, **kwargs):
-        if check_logged_in(info):
-            return Language.objects.all()
+        #if check_logged_in(info):
+        return Language.objects.all()
 
     def resolve_all_topics(self, info, **kwargs):
-        if check_logged_in(info):
-            return Topic.objects.all()
+        #if check_logged_in(info):
+        return Topic.objects.all()
 
     def resolve_all_playlists(self, info, **kwargs):
-        if check_logged_in(info):
-            return Playlist.objects.all()
+        #if check_logged_in(info):
+        return Playlist.objects.all()
 
     def resolve_all_tracks(self, info, **kwargs):
-        if check_logged_in(info):
-            return Track.objects.all()
+        #if check_logged_in(info):
+        return Track.objects.all()
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
