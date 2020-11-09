@@ -10,6 +10,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+secure.py
 build/
 develop-eggs/
 dist/
