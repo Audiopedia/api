@@ -435,10 +435,10 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_jwt.Refresh.Field()
 
 class Query(graphene.ObjectType):
-    language = graphene.Field(LanguageType, id=graphene.Int())
-    track = graphene.Field(TrackType, id=graphene.Int())
-    topic = graphene.Field(TopicType, id=graphene.Int())
-    playlist = graphene.Field(PlaylistType, id=graphene.Int())
+    language = graphene.Field(LanguageType, id=graphene.Int(), index=graphene.Int())
+    track = graphene.Field(TrackType, id=graphene.Int(), index=graphene.Int())
+    topic = graphene.Field(TopicType, id=graphene.Int(), index=graphene.Int())
+    playlist = graphene.Field(PlaylistType, id=graphene.Int(), index=graphene.Int())
 
     tracks = graphene.List(TrackType, playlist=graphene.ID())
     playlists = graphene.List(PlaylistType, topic=graphene.ID())
@@ -464,39 +464,28 @@ class Query(graphene.ObjectType):
 
     # get topic by id
     def resolve_track(self, info, **kwargs):
-        id = kwargs.get('id')
+        args = dict(kwargs)
+        args['pk'] = args['id']
+        del args['id']
+        return Track.objects.get(**args)
 
-        if id is not None:
-            return Track.objects.get(pk=id)
-        
-        return None
-
-    # get topic by id
-    def resolve_language(self, info, **kwargs):
-        id = kwargs.get('id')
-
-        if id is not None:
-            return Language.objects.get(pk=id)
-        
-        return None
-
-    # get topic by id
     def resolve_topic(self, info, **kwargs):
-        id = kwargs.get('id')
+        args = dict(kwargs)
+        args['pk'] = args['id']
+        del args['id']
+        return Topic.objects.get(**args)
 
-        if id is not None:
-            return Topic.objects.get(pk=id)
-        
-        return None
-
-    # get playlist by id
     def resolve_playlist(self, info, **kwargs):
-        id = kwargs.get('id')
+        args = dict(kwargs)
+        args['pk'] = args['id']
+        del args['id']
+        return Playlist.objects.get(**args)
 
-        if id is not None:
-            return Playlist.objects.get(pk=id)
-
-        return None
+    def resolve_language(self, info, **kwargs):
+        args = dict(kwargs)
+        args['pk'] = args['id']
+        del args['id']
+        return Language.objects.get(**args)
 
     # get tracks by playlist
     def resolve_tracks(self, info, playlist = None, **kwargs):
