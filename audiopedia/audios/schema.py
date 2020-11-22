@@ -435,6 +435,8 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_jwt.Refresh.Field()
 
 class Query(graphene.ObjectType):
+    language = graphene.Field(LanguageType, id=graphene.Int())
+    track = graphene.Field(TrackType, id=graphene.Int())
     topic = graphene.Field(TopicType, id=graphene.Int())
     playlist = graphene.Field(PlaylistType, id=graphene.Int())
 
@@ -459,6 +461,24 @@ class Query(graphene.ObjectType):
             raise Exception('Not logged in!')
 
         return user
+
+    # get topic by id
+    def resolve_track(self, info, **kwargs):
+        id = kwargs.get('id')
+
+        if id is not None:
+            return Track.objects.get(pk=id)
+        
+        return None
+
+    # get topic by id
+    def resolve_language(self, info, **kwargs):
+        id = kwargs.get('id')
+
+        if id is not None:
+            return Language.objects.get(pk=id)
+        
+        return None
 
     # get topic by id
     def resolve_topic(self, info, **kwargs):
