@@ -7,6 +7,16 @@ from audios.schema import schema
 
 import collections
 
+create_user = """
+mutation {
+  createUser(username: "test", password: "test") {
+    user {
+      id
+    }
+  }
+}
+"""
+
 query_lang = """
 query {
   allLanguages {
@@ -65,13 +75,15 @@ query {
 create_track = """
 mutation createTrack {
   createTrack(input: {
-    title: "How are germs mostly spread?",
-    index: 0,
+    title: "How are germs mostly spread?3",
+    index: 3,
     audioUrl: "www.test.url",
     transcript: "Germs are spread through X,Y, and Z.",
     duration: 33,
     active: true,
-    published: true
+    published: true,
+    language_id: "TGFuZ3VhZ2VUeXBlOjE=",
+    playlist: "UGxheWxpc3RUeXBlOjE="
   }) {
     ok
     track {
@@ -103,12 +115,13 @@ mutation deleteTrack {
 create_playlist = """
 mutation createPlaylist {
     createPlaylist(input: {
-		index: 0,
+		    index: 1,
         title: "Cleanliness",
         audioUrl: "www.test.url",
         active: true,
         published: true,
-        tracks: [1]
+        language: 1,
+        topic: 1
   }) {
         ok
         playlist {
@@ -163,12 +176,12 @@ mutation deletePlaylist {
 create_topic = """
 mutation createTopic {
     createTopic(input: {
-		index: 0,
+		    index: 0,
         title: "Health",
         audioUrl: "www.test.url",
         active: true,
         published: true,
-        playlists: [1]
+        language: 1
   }) {
         ok
         topic {

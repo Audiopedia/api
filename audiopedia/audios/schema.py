@@ -1,9 +1,12 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 import graphql_jwt
+from graphql_relay import from_global_id
+from graphene import relay, ObjectType
 from .models import Language, Track, Playlist, Topic
 
 def check_logged_in(info):
@@ -15,15 +18,17 @@ def check_logged_in(info):
 class LanguageType(DjangoObjectType):
     class Meta:
         model = Language
-        fields = ("id", "name", "audio_url", "published")
+        filter_fields = ("id", "name", "audio_url", "published")
+        interfaces = (relay.Node, )
 
 class TrackType(DjangoObjectType):
     class Meta:
         model = Track
-        fields = ("id", "title", "index", "audio_url", "transcript", "duration", "created_at", "updated_at", "active", "published")
+        filter_fields = ("id", "title", "index", "audio_url", "transcript", "duration", "created_at", "updated_at", "active", "published", "language_id")
+        interfaces = (relay.Node, )
 
 class PlaylistType(DjangoObjectType):
-
+    
     # get tracks by playlist workaround?
     # tracks = graphene.List(TrackType)
 
@@ -33,12 +38,14 @@ class PlaylistType(DjangoObjectType):
 
     class Meta:
         model = Playlist
-        fields = ("id", "title", "index", "audio_url", "active", "published", "tracks")
+        filter_fields = ("id", "title", "index", "audio_url", "active", "published", "tracks", "language_id")
+        interfaces = (relay.Node, )
 
 class TopicType(DjangoObjectType):
     class Meta:
         model = Topic
-        fields=("id", "title", "index", "audio_url", "active", "published", "playlists")
+        filter_fields=("id", "title", "index", "audio_url", "active", "published", "playlists", "language_id")
+        interfaces = (relay.Node, )
 
 class LanguageInput(graphene.InputObjectType):
     name = graphene.String(description="Name of the language")
@@ -53,6 +60,8 @@ class TrackInput(graphene.InputObjectType):
     duration = graphene.Int(description="Duration of the track in seconds")
     active = graphene.Boolean(description="Inactivate to temporarily delete track and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
+    language_id = graphene.ID(description="ID of the language object")
+    playlist = graphene.ID(description="ID of playlist that this track belongs to")
     
 class PlaylistInput(graphene.InputObjectType):
     index = graphene.ID(description="Position of the playlist within a topic")
@@ -60,7 +69,8 @@ class PlaylistInput(graphene.InputObjectType):
     audio_url = graphene.String(description="URL to the audio directory associated with this playlist")
     active = graphene.Boolean(description="Inactivate to temporarily delete playlist and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
-    tracks = graphene.List(graphene.ID, description="List of all the IDs of tracks this playlist contains")
+    language_id = graphene.ID(description="ID of the language object")
+    topic = graphene.ID(description="ID of topic that this track belongs to")
 
 class TopicInput(graphene.InputObjectType):
     index = graphene.ID(description="Position/placement of the topic among a list of topics")
@@ -68,7 +78,7 @@ class TopicInput(graphene.InputObjectType):
     audio_url = graphene.String(description="URL to the audio directory associated with this topic")
     active = graphene.Boolean(description="Inactivate to temporarily delete topic and reactivate to recover")
     published = graphene.Boolean(description="Visible to user if true")
-    playlists = graphene.List(graphene.ID, description="List of all the IDs of playlists this topic contains")
+    language_id = graphene.ID(description="ID of the language object")
 
 class CreateLanguage(graphene.Mutation):
     class Arguments:
@@ -86,7 +96,7 @@ class CreateLanguage(graphene.Mutation):
             lang_instance = Language(
                 name = input.name,
                 audio_url = input.audio_url,
-                published = input.published
+                published = input.published,
                 )
             lang_instance.save()
             return CreateLanguage(ok=ok, language=lang_instance, user=user)
@@ -97,7 +107,7 @@ class UpdateLanguage(graphene.Mutation):
         name = graphene.String(description="New name for the language")
         audio_url = graphene.String(description="New URL")
         published = graphene.Boolean(description="Update published status")
-
+    
     ok = graphene.Boolean(description="Success status")
     user = graphene.String(description="Username of the authenticated user")
     language = graphene.Field(LanguageType)
@@ -107,7 +117,7 @@ class UpdateLanguage(graphene.Mutation):
         user = check_logged_in(info)
         if user:
             ok = False
-            lang_instance = Language.objects.get(pk=id)
+            lang_instance = Language.objects.get(pk=from_global_id(id)[1])
             if lang_instance:
                 ok = True
                 if audio_url:
@@ -132,7 +142,7 @@ class DeleteLanguage(graphene.Mutation):
     def mutate(root, info, id):
         user = check_logged_in(info)
         if user:
-            obj = Language.objects.get(pk=id)
+            obj = Language.objects.get(pk=from_global_id(id)[1])
             obj.delete()
             return DeleteLanguage(ok=True, user=user)
 
@@ -149,21 +159,15 @@ class CreateTopic(graphene.Mutation):
         user = check_logged_in(info)
         if user:
             ok = True
-            playlists = []
-            for playlist_id in input.playlists:
-                playlist = Playlist.objects.get(pk=playlist_id)
-                if playlist is None:
-                    return CreateTopic(ok=False, playlist=None, user=user)
-                playlists.append(playlist)
             topic_instance = Topic(
                 index = input.index,
                 title=input.title,
                 audio_url = input.audio_url,
                 active = input.active,
                 published = input.published,
+                language_id = from_global_id(input.language_id)[1]
                 )
             topic_instance.save()
-            topic_instance.playlists.set(playlists)
             return CreateTopic(ok=ok, topic=topic_instance, user=user)
         
 class UpdateTopic(graphene.Mutation):
@@ -174,7 +178,7 @@ class UpdateTopic(graphene.Mutation):
         audio_url = graphene.String(description="New URL")
         active = graphene.Boolean(description="Updated active status")
         published = graphene.Boolean(description="Updated published status")
-        playlists = graphene.List(graphene.ID, description="New playlist order")
+        language_id = graphene.ID(description="ID of the language object")
 
     ok = graphene.Boolean(description="Success status")
     user = graphene.String(description="Username of the authenticated user")
@@ -185,16 +189,9 @@ class UpdateTopic(graphene.Mutation):
         user = check_logged_in(info)
         if user:
             ok = False
-            topic_instance = Topic.objects.get(pk=id)
+            topic_instance = Topic.objects.get(pk=from_global_id(id)[1])
             if topic_instance:
                 ok = True
-                new_playlists = []
-                for playlist_id in playlists:
-                    playlist = Playlist.objects.get(pk=playlist_id)
-                    if playlist is None:
-                        return UpdateTopic(ok=False, playlist=None, user=user)
-                    playlists.append(new_playlists)
-
                 if index: topic_instance.index = index
                 if title: topic_instance.title = title
                 if audio_url: topic_instance.audio_url = audio_url
@@ -202,7 +199,6 @@ class UpdateTopic(graphene.Mutation):
                 if published != None: topic_instance.published = published
 
                 topic_instance.save()
-                topic_instance.playlists.set(new_playlists)
                 return UpdateTopic(ok=ok, topic=topic_instance, user=user)
             return UpdateTopic(ok=ok, topic=None, user=user)
 
@@ -217,7 +213,7 @@ class DeleteTopic(graphene.Mutation):
     def mutate(root, info, id):
         user = check_logged_in(info)
         if user:
-            obj = Topic.objects.get(pk=id)
+            obj = Topic.objects.get(pk=from_global_id(id)[1])
             obj.delete()
             return DeleteTopic(ok=True, user=user)
 
@@ -235,21 +231,20 @@ class CreatePlaylist(graphene.Mutation):
         user = check_logged_in(info)
         if user:    
             ok = True
-            tracks = []
-            for track_id in input.tracks:
-                track = Track.objects.get(pk=track_id)
-                if track is None:
-                    return CreatePlaylist(ok=False, playlist=None, user=user)
-                tracks.append(track)
             playlist_instance = Playlist(
                 index = input.index,
                 title=input.title,
                 audio_url = input.audio_url,
                 active = input.active,
                 published = input.published,
+                language_id = from_global_id(input.language_id)[1]
                 )
             playlist_instance.save()
-            playlist_instance.tracks.set(tracks)
+
+            if input.topic:
+                topic = Topic.objects.get(pk=from_global_id(input.topic)[1])
+                topic.playlists.add(playlist_instance)
+            
             return CreatePlaylist(ok=ok, playlist=playlist_instance, user=user)
         
 class UpdatePlaylist(graphene.Mutation):
@@ -258,37 +253,37 @@ class UpdatePlaylist(graphene.Mutation):
         index = graphene.Int(description="New position of the playlist within a topic")
         title = graphene.String(description="New title")
         audio_url = graphene.String(description="New URL")
-        tracks = graphene.List(graphene.ID, description="New ordering of tracks")
         active = graphene.Boolean(description="New active status")
         published = graphene.Boolean(description="New upblished status")
-
+        topic = graphene.ID(description="ID of the new topic object that this playlist belongs to")
+        
     ok = graphene.Boolean(description="Success status")
     user = graphene.String(description="Username of the authenticated user")
     playlist = graphene.Field(PlaylistType)
 
     @staticmethod
-    def mutate(root, info, id, index=None, active=None, published=None, tracks=[], title=None, audio_url=None):
+    def mutate(root, info, id, index=None, active=None, published=None, tracks=[], title=None, audio_url=None, topic=None):
         user = check_logged_in(info)
         if user:
             ok = False
-            playlist_instance = Playlist.objects.get(pk=id)
+            playlist_instance = Playlist.objects.get(pk=from_global_id(id)[1])
             if playlist_instance:
                 ok = True
-                new_tracks = []
-                for track_id in tracks:
-                    track = Track.objects.get(pk=track_id)
-                    if track is None:
-                        return UpdatePlaylist(ok=False, track=None, user=user)
-                    new_tracks.append(track)
-
                 if index: playlist_instance.index = index
                 if title: playlist_instance.title = title
                 if audio_url: playlist_instance.audio_url = audio_url
                 if active != None: playlist_instance.active = active
                 if published != None: playlist_instance.published = published
+                
+                if topic != None:
+                    # Change playlist
+                    old_topic = Topic.objects.get(playlists=from_global_id(id)[1])
+                    new_topic = Topic.objects.get(pk=from_global_id(topic)[1])
+                    old_topic.tracks.remove(playlist_instance)
+                    new_topic.tracks.add(playlist_instance)
+
                 playlist_instance.save()
 
-                if len(tracks): playlist_instance.tracks.set(new_tracks)
                 return UpdatePlaylist(ok=ok, playlist=playlist_instance, user=user)
             return UpdatePlaylist(ok=ok, playlist=None, user=user)
 
@@ -303,7 +298,7 @@ class DeletePlaylist(graphene.Mutation):
     def mutate(root, info, id):
         user = check_logged_in(info)
         if user:
-            obj = Playlist.objects.get(pk=id)
+            obj = Playlist.objects.get(pk=from_global_id(id)[1])
             obj.delete()
             return DeletePlaylist(ok=True, user=user)
 
@@ -313,7 +308,8 @@ class CreateTrack(graphene.Mutation):
     
     ok = graphene.Boolean(description="Success status")
     user = graphene.String(description="Username of the authenticated user")
-    
+    track = graphene.Field(TrackType)
+
     @staticmethod
     def mutate(root, info, input=None):
         user = check_logged_in(info)
@@ -328,9 +324,16 @@ class CreateTrack(graphene.Mutation):
                 created_at = timezone.now(),
                 updated_at = timezone.now(),
                 active = input.active,
-                published = input.published
+                published = input.published,
+                language_id = from_global_id(input.language_id)[1]
                 )
             track_instance.save()
+
+            # Add to playlist
+            if input.playlist:
+                playlist = Playlist.objects.get(pk=from_global_id(input.playlist)[1])
+                playlist.tracks.add(track_instance)
+            
             return CreateTrack(ok=ok, track=track_instance, user=user)
 
 class UpdateTrack(graphene.Mutation):
@@ -342,17 +345,18 @@ class UpdateTrack(graphene.Mutation):
         duration = graphene.String(description="New duration")
         active = graphene.Boolean(description="New active status")
         published = graphene.Boolean(description="New published status")
-
+        playlist = graphene.ID(description="ID of playlist that this track belongs")
+        
     ok = graphene.Boolean()
     track = graphene.Field(TrackType)
     user = graphene.String(description="Username of the authenticated user")
 
     @staticmethod
-    def mutate(root, info, id, index=None, active=None, published=None, duration=None, transcript=None, audio_url=None):
+    def mutate(root, info, id, index=None, active=None, published=None, duration=None, transcript=None, audio_url=None, playlist=None):
         user = check_logged_in(info)
         if user:
             ok = False
-            track_instance = Track.objects.get(pk=id)
+            track_instance = Track.objects.get(pk=from_global_id(id)[1])
             if track_instance:
                 ok = True
                 if index:
@@ -367,7 +371,13 @@ class UpdateTrack(graphene.Mutation):
                     track_instance.active = active
                 if published != None:
                     track_instance.published = published
-
+                if playlist != None:
+                    # Change playlist
+                    old_playlist = Playlist.objects.get(tracks=from_global_id(id)[1])
+                    new_playlist = Playlist.objects.get(pk=from_global_id(playlist)[1])
+                    old_playlist.tracks.remove(track_instance)
+                    new_playlist.tracks.add(track_instance)
+        
                 # Update the updated_at time
                 track_instance.updated_at = timezone.now()
 
@@ -378,7 +388,7 @@ class UpdateTrack(graphene.Mutation):
 class DeleteTrack(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True, description="ID of the track to be deleted")
-    
+
     ok = graphene.Boolean(description="Success status")
     user = graphene.String(description="Username of the authenticated user")
 
@@ -386,7 +396,7 @@ class DeleteTrack(graphene.Mutation):
     def mutate(root, info, id):
         user = check_logged_in(info)
         if user:
-            obj = Track.objects.get(pk=id)
+            obj = Track.objects.get(pk=from_global_id(id)[1])
             obj.delete()
             return DeleteTrack(ok=True, user=user)
 
@@ -435,23 +445,25 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_jwt.Refresh.Field()
 
 class Query(graphene.ObjectType):
-    language = graphene.Field(LanguageType, id=graphene.Int(), index=graphene.Int())
-    track = graphene.Field(TrackType, id=graphene.Int(), index=graphene.Int())
-    topic = graphene.Field(TopicType, id=graphene.Int(), index=graphene.Int())
-    playlist = graphene.Field(PlaylistType, id=graphene.Int(), index=graphene.Int())
+    #get_language = graphene.List(LanguageType, id=graphene.Int(description="ID of the language object"), active=graphene.Boolean(description="The active status of the object"), published=graphene.Boolean(description="The published status of the object"))
+    #get_track = graphene.List(TrackType, id=graphene.Int(description="ID of the track object"), index=graphene.Int(description="Position of the track within a playlist"), active=graphene.Boolean(description="The active status of the object"), published=graphene.Boolean(description="The published status of the object"), language=graphene.ID(description="The language of the track"))
+    #get_topic = graphene.List(TopicType, id=graphene.Int(description="ID of the topic object"), index=graphene.Int(description="Position of the topic in the interface"), active=graphene.Boolean(description="The active status of the object"), published=graphene.Boolean(description="The published status of the object"), language=graphene.ID(description="The language of the topic"))
+    #get_playlist = graphene.List(PlaylistType, id=graphene.Int(description="ID of the playlist object"), index=graphene.Int(description="Position of the playlist within a topic"), active=graphene.Boolean(description="The active status of the object"), published=graphene.Boolean(description="The published status of the object"), language=graphene.ID(description="The language of the playlist"))
 
-    tracks = graphene.List(TrackType, playlist=graphene.ID())
-    playlists = graphene.List(PlaylistType, topic=graphene.ID())
+    language = relay.Node.Field(LanguageType)
+    topic = relay.Node.Field(TopicType)
+    playlist = relay.Node.Field(PlaylistType)
+    track = relay.Node.Field(TrackType)
 
-    all_languages = graphene.List(LanguageType)
-    all_topics = graphene.List(TopicType)
-    all_playlists = graphene.List(PlaylistType)
-    all_tracks = graphene.List(TrackType)
+    all_languages = DjangoFilterConnectionField(LanguageType)
+    all_topics = DjangoFilterConnectionField(TopicType)
+    all_playlists = DjangoFilterConnectionField(PlaylistType)
+    all_tracks = DjangoFilterConnectionField(TrackType)
     
     all_users = graphene.List(UserType)
     current_user = graphene.Field(UserType)
     
-    def resolve_all_users(self, info):
+    def resolve_all_users(scelf, info):
         #if check_logged_in(info):
         return get_user_model().objects.all()
 
@@ -461,31 +473,44 @@ class Query(graphene.ObjectType):
             raise Exception('Not logged in!')
 
         return user
-
+    """
     # get topic by id
-    def resolve_track(self, info, **kwargs):
+    def resolve_get_track(self, info, **kwargs):
         args = dict(kwargs)
-        args['pk'] = args['id']
-        del args['id']
-        return Track.objects.get(**args)
+        if 'id' in args:
+            args['pk'] = args['id']
+            del args['id']
+        if 'language' in args:
+            args['language_id'] = args['language']
+            del args['language']
+        return Track.objects.filter(**args)
 
-    def resolve_topic(self, info, **kwargs):
+    def resolve_get_topic(self, info, **kwargs):
         args = dict(kwargs)
-        args['pk'] = args['id']
-        del args['id']
-        return Topic.objects.get(**args)
+        if 'id' in args:
+            args['pk'] = args['id']
+            del args['id']
+        if 'language' in args:
+            args['language_id'] = args['language']
+            del args['language']
+        return Topic.objects.filter(**args)
 
-    def resolve_playlist(self, info, **kwargs):
+    def resolve_get_playlist(self, info, **kwargs):
         args = dict(kwargs)
-        args['pk'] = args['id']
-        del args['id']
-        return Playlist.objects.get(**args)
+        if 'id' in args:
+            args['pk'] = args['id']
+            del args['id']
+        if 'language' in args:
+            args['language_id'] = args['language']
+            del args['language']
+        return Playlist.objects.filter(**args)
 
-    def resolve_language(self, info, **kwargs):
+    def resolve_get_language(self, info, **kwargs):
         args = dict(kwargs)
-        args['pk'] = args['id']
-        del args['id']
-        return Language.objects.get(**args)
+        if 'id' in args:
+            args['pk'] = args['id']
+            del args['id']
+        return Language.objects.filter(**args)
 
     # get tracks by playlist
     def resolve_tracks(self, info, playlist = None, **kwargs):
@@ -518,5 +543,5 @@ class Query(graphene.ObjectType):
     def resolve_all_tracks(self, info, **kwargs):
         #if check_logged_in(info):
         return Track.objects.all()
-
+    """
 schema = graphene.Schema(query=Query, mutation=Mutation)

@@ -16,6 +16,7 @@ class Track(models.Model):
     updated_at = models.DateTimeField(help_text="When the track was last updated.", default=datetime.now, blank=True)
     active = models.BooleanField(help_text="Inactivate to temporarily delete track and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide whether this track is ready for users to see.", default=True)
+    language = models.ForeignKey("Language", on_delete=models.CASCADE, help_text="The language of the track.")
 
 class Playlist(models.Model):
     title = models.CharField(help_text="The title of the playlist.", max_length=200)
@@ -24,6 +25,7 @@ class Playlist(models.Model):
     active = models.BooleanField(help_text="Inactivate to temporarily delete playlist and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the playlist from the users.", default=True)
     tracks = models.ManyToManyField(Track, help_text="A list of all the tracks this playlist contains.")
+    language = models.ForeignKey("Language", on_delete=models.CASCADE, help_text="The language of the track.")
 
 class Topic(models.Model):
     title = models.CharField(help_text="The name of the topic.", max_length=200)
@@ -32,4 +34,5 @@ class Topic(models.Model):
     active = models.BooleanField(help_text="Inactivate to temporarily delete topic and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the topic from the users.", default=True)
     playlists = models.ManyToManyField(Playlist, help_text="A list of all the playlists this topic contains.")
+    language = models.ForeignKey("Language", on_delete=models.CASCADE, help_text="The language of the track.")
 
