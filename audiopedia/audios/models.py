@@ -8,7 +8,7 @@ class Language(models.Model):
 
 class Track(models.Model):
     title = models.CharField(max_length=200, help_text="Title of the track.")
-    index = models.IntegerField(unique=True, help_text="The position of the track within a playlist.")
+    index = models.IntegerField(help_text="The position of the track within a playlist.")
     audio_url = models.URLField(help_text="URL to the audio file that goes with this track.")
     transcript = models.TextField(help_text="A string/text transcript that goes along with the audio.")
     duration = models.IntegerField(help_text="Duration in seconds.") # Duration in seconds
@@ -20,7 +20,7 @@ class Track(models.Model):
 
 class Playlist(models.Model):
     title = models.CharField(help_text="The title of the playlist.", max_length=200)
-    index = models.IntegerField(help_text="The position of the playlist within a topic.", unique=True)
+    index = models.IntegerField(help_text="The position of the playlist within a topic.")
     audio_url = models.URLField(help_text="URL to the audio directory associated with the playlist.")
     active = models.BooleanField(help_text="Inactivate to temporarily delete playlist and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the playlist from the users.", default=True)
@@ -29,7 +29,7 @@ class Playlist(models.Model):
 
 class Topic(models.Model):
     title = models.CharField(help_text="The name of the topic.", max_length=200)
-    index = models.IntegerField(help_text="The order/position of the topic within the interface.", unique=True)
+    index = models.IntegerField(help_text="The order/position of the topic within the interface.")
     audio_url = models.URLField(help_text="URL to the audio directory associated with the topic.")
     active = models.BooleanField(help_text="Inactivate to temporarily delete topic and reactivate to recover.", default=True)
     published = models.BooleanField(help_text="Decide to show or hide the topic from the users.", default=True)

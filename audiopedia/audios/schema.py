@@ -544,4 +544,78 @@ class Query(graphene.ObjectType):
         #if check_logged_in(info):
         return Track.objects.all()
     """
+
+"""
+def fill_data(csv):
+    import pandas as pd
+    data = pd.read_csv(csv)
+
+    # Create language
+    english = Language(
+        name = "English",
+        audio_url = "",
+        published = True,
+        )
+    english.save()
+
+    topics = data.topic.unique()
+
+    for topic_n, topic in enumerate(topics):
+        # create topic here
+        topic_instance = Topic(
+            index = topic_n,
+            title=topic,
+            audio_url = "",
+            active = True,
+            published = True,
+            language_id = english.pk
+            )
+        topic_instance.save()
+
+        playlists = data.loc[data['topic'] == topic].playlist.unique()
+        for playlist_n, playlist in enumerate(playlists):
+            # create playlist object here
+            playlist_instance = Playlist(
+                index = playlist_n,
+                title=playlist,
+                audio_url = "",
+                active = True,
+                published = True,
+                language_id = english.pk
+                )
+            playlist_instance.save()
+
+            tracks = data.loc[data['playlist'] == playlist].track.unique()
+            for track_n, track in enumerate(tracks):
+                #create track object here
+                track_row = data.loc[data['track'] == track]
+ 
+                track_instance = Track(
+                    index = track_n,
+                    title=track,
+                    audio_url = track_row.audio.item(),
+                    transcript = track_row.transcript.item(),
+                    duration = "0",
+                    created_at = timezone.now(),
+                    updated_at = timezone.now(),
+                    active = True,
+                    published = True,
+                    language_id = english.pk
+                    )
+                track_instance.save()
+                playlist_instance.tracks.add(track_instance)
+
+            topic_instance.playlists.add(playlist_instance)
+                
+"""
+# Create user
+"""
+user = get_user_model()(
+    username="test",
+)
+user.set_password("test")
+user.save()
+"""
+#fill_data("data.csv")
+
 schema = graphene.Schema(query=Query, mutation=Mutation)
