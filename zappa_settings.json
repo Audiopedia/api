@@ -1,0 +1,18 @@
+{
+    "dev": {
+        "django_settings": "audiopedia.settings.dev",
+        "project_name": "audiopedia",
+        "profile_name": null,
+        "runtime": "python3.6",
+        "s3_bucket": "audiopedia-lambda",
+        "aws_region": "us-east-2"
+    },
+    "prod": {
+        "django_settings": "audiopedia.settings.prod",
+        "project_name": "audiopedia",
+        "profile_name": null,
+        "runtime": "python3.6",
+        "s3_bucket": "audiopedia-lambda",
+        "aws_region": "us-east-2"
+    }
+}
