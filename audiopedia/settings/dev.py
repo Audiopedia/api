@@ -8,7 +8,7 @@ SECRET_KEY = "UpQ792f1jcYJqWapecLom0e5fuCbbFbsOujT3qJAP4pPQD2pOlcQpxvx4Dg6aEGxA1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "21jk0xralk.execute-api.us-east-2.amazonaws.com"]
+ALLOWED_HOSTS = ["127.0.0.1", '.localhost', "21jk0xralk.execute-api.us-east-2.amazonaws.com"]
 
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
